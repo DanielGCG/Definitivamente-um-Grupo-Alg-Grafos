@@ -1,1 +1,57 @@
-<p>Hello World</p>
+<main class="container">
+    <div class="my-3">
+        <h2>Seja bem-vindo ao Jogo da Fofoca!</h2>
+        <p>Prepare-se para uma experiência divertida e cheia de surpresas!</p>
+    </div>
+    <div class="row">
+        <div class="col-6">
+            <div id="gameCarousel" class="carousel slide mb-4" data-bs-ride="carousel" data-bs-interval="3000">
+                <div class="carousel-inner">
+                    <div class="carousel-item active">
+                        <img src="/img/Jogo da Fofoca.png" class="d-block mx-auto" alt="Capa do Jogo da Fofoca"
+                            style="display:block; object-fit: contain; max-height: 400px;">
+                        <div class="carousel-caption d-none d-md-block">
+                            <h5>Jogo da Fofoca</h5>
+                            <p>Divirta-se: descubra ou disfarce as fofocas enquanto joga com seus amigos.</p>
+                        </div>
+                    </div>
+                </div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#gameCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Anterior</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#gameCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Próximo</span>
+                </button>
+            </div>
+        </div>
+        <div class="col-6">
+            <div class="px-3">
+                <button class="btn d-block mx-auto mb-4 w-100" onclick="window.location.href='/play'" style="background-color: red;">
+                    <h1 class="text-center">JOGUE AGORA!</h1>
+                </button>
+            </div>
+            <div class="d-flex flex-row gap-3 justify-content-center flex-wrap mb-4">
+                <div class="card" style="width: 18rem;">
+                    <img src="img/interrogacao.webp" class="card-img-top" alt="..."
+                        style="object-fit: contain; max-height: 10rem;">
+                    <div class="card-body">
+                        <h5 class="card-title">Como Jogar?</h5>
+                        <p class="card-text">Entenda quais são as tecnologias e algoritmos utilizados nesse jogo.</p>
+                        <a href="/how-to-play" class="btn btn-primary">Entenda</a>
+                    </div>
+                </div>
+                <div class="card" style="width: 18rem;">
+                    <img src="img/grafos.png" class="card-img-top" alt="..."
+                        style="object-fit: contain; max-height: 10rem;">
+                    <div class="card-body">
+                        <h5 class="card-title">Como funciona?</h5>
+                        <p class="card-text">Entenda o funcionamento das mecânicas do jogo.</p>
+                        <a href="/about" class="btn btn-primary">Entenda</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>

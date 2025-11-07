@@ -5,8 +5,7 @@ const expressLayout = require('express-ejs-layouts');
 const cors = require('cors');
 
 const app = express();
-// Prefer PORT, fallback to PORTA (in your .env) then default 3000
-const PORT = process.env.PORT || process.env.PORTA || 3000;
+const PORT = process.env.PORTA || 3000;
 
 app.use(cors());
 app.use(express.json());
