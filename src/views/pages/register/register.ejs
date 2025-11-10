@@ -1,0 +1,19 @@
+<div class="container d-flex align-items-center justify-content-center min-vh-100">
+	<div class="card shadow-sm p-4" style="max-width: 400px; width: 100%;">
+		<h2 class="mb-4 text-center">Registrar</h2>
+		<form method="POST" action="/register">
+			<div class="mb-3">
+				<label for="username" class="form-label">Usuário</label>
+				<input type="text" class="form-control" id="username" name="username" required autofocus>
+			</div>
+			<div class="mb-3">
+				<label for="password" class="form-label">Senha</label>
+				<input type="password" class="form-control" id="password" name="password" required>
+			</div>
+			<button type="submit" class="btn btn-primary w-100">Registrar</button>
+		</form>
+		<div class="mt-3 text-center">
+			<span>Já tem conta?</span> <a href="/login">Entrar</a>
+		</div>
+	</div>
+</div>
