@@ -1,0 +1,366 @@
+/* ========================================
+   ESTILOS DA PÁGINA INICIAL - JOGO DA FOFOCA
+   ======================================== */
+
+/* Banner Hero */
+.text-shadow {
+    text-shadow: 2px 2px 8px rgba(0,0,0,0.8), 0 0 20px rgba(0,0,0,0.5);
+}
+
+.hero-banner {
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+.hero-overlay {
+    z-index: 2;
+}
+
+/* Botões de Ação */
+.btn-play {
+    background: linear-gradient(135deg, #ff5226, #eb1f1f);
+    border: none;
+    color: white;
+    padding: 15px 40px;
+    font-size: 1.5rem;
+    font-weight: bold;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(255, 82, 38, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.btn-play:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 6px 20px rgba(255, 82, 38, 0.6);
+    color: white;
+    background: linear-gradient(135deg, #ff6236, #fb2f2f);
+}
+
+.btn-play:active {
+    transform: translateY(-1px) scale(0.98);
+}
+
+.btn-play-large {
+    background: linear-gradient(135deg, #ff5226, #eb1f1f);
+    border: none;
+    color: white;
+    padding: 20px 50px;
+    font-size: 1.8rem;
+    font-weight: bold;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+    box-shadow: 0 6px 20px rgba(255, 82, 38, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.btn-play-large:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 25px rgba(255, 82, 38, 0.6);
+    color: white;
+    background: linear-gradient(135deg, #ff6236, #fb2f2f);
+}
+
+.btn-play-large:active {
+    transform: scale(0.98);
+}
+
+/* Cards Personalizados */
+.card-custom {
+    border-radius: 15px;
+    border: none;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.card-hover {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card-hover:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+}
+
+.bg-gradient-custom {
+    background: linear-gradient(135deg, #fff9e6 0%, #ffe6cc 100%);
+    border: 2px solid rgba(255, 82, 38, 0.1);
+}
+
+/* Status de Amigos */
+.friend-item, .leaderboard-item {
+    padding: 0.75rem 1rem !important;
+}
+
+.status-online {
+    width: 12px;
+    height: 12px;
+    background-color: #28a745;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+    animation: pulse-online 2s infinite;
+    box-shadow: 0 0 5px rgba(40, 167, 69, 0.5);
+}
+
+.status-offline {
+    width: 12px;
+    height: 12px;
+    background-color: #6c757d;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+    opacity: 0.6;
+}
+
+@keyframes pulse-online {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.1);
+    }
+}
+
+/* Ranking - Medalhas */
+.rank-medal {
+    font-size: 1.5rem;
+    margin-right: 10px;
+    font-weight: bold;
+    min-width: 40px;
+    display: inline-block;
+    text-align: center;
+}
+
+.rank-1 { 
+    color: #FFD700;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.rank-2 { 
+    color: #C0C0C0;
+    text-shadow: 0 0 10px rgba(192, 192, 192, 0.5);
+}
+
+.rank-3 { 
+    color: #CD7F32;
+    text-shadow: 0 0 10px rgba(205, 127, 50, 0.5);
+}
+
+/* Busca de Usuários */
+.search-result-item {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.search-result-item:hover {
+    background-color: #f0f0f0;
+    border-left: 3px solid #ff5226;
+    padding-left: 15px;
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+/* Headers de Cards */
+.card-header {
+    font-weight: 600;
+    border-bottom: 2px solid rgba(0,0,0,0.1);
+}
+
+.card-footer {
+    border-top: 2px solid rgba(0,0,0,0.05);
+}
+
+/* Badges Customizados */
+.badge {
+    padding: 6px 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* Grupos de Botões */
+.btn-group-sm .btn {
+    padding: 4px 8px;
+    font-size: 0.875rem;
+}
+
+/* Ícones Bootstrap */
+.bi {
+    vertical-align: middle;
+}
+
+/* Input de Busca */
+#searchUser {
+    border: 2px solid #e0e0e0;
+    transition: all 0.3s ease;
+}
+
+#searchUser:focus {
+    border-color: #ff5226;
+    box-shadow: 0 0 0 0.2rem rgba(255, 82, 38, 0.15);
+}
+
+/* Scrollbar Personalizada para Cards */
+.list-group {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.list-group::-webkit-scrollbar {
+    width: 6px;
+}
+
+.list-group::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.list-group::-webkit-scrollbar-thumb {
+    background: #ff5226;
+    border-radius: 10px;
+}
+
+.list-group::-webkit-scrollbar-thumb:hover {
+    background: #eb1f1f;
+}
+
+/* Animações de Entrada */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card-custom {
+    animation: fadeInUp 0.5s ease-out;
+}
+
+/* Loading State */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Toast Notifications */
+.alert {
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Responsividade */
+@media (max-width: 992px) {
+    .hero-overlay h1 {
+        font-size: 2rem !important;
+    }
+    
+    .hero-overlay p {
+        font-size: 1rem !important;
+    }
+    
+    .btn-play {
+        font-size: 1.2rem;
+        padding: 12px 30px;
+    }
+    
+    .btn-play-large {
+        font-size: 1.4rem;
+        padding: 15px 35px;
+    }
+    
+    .rank-medal {
+        font-size: 1.2rem;
+        min-width: 30px;
+    }
+}
+
+@media (max-width: 768px) {
+    .hero-banner img {
+        max-height: 200px !important;
+    }
+    
+    .card-custom {
+        margin-bottom: 1rem;
+    }
+    
+    .btn-play-large {
+        font-size: 1.2rem;
+        padding: 12px 25px;
+    }
+}
+
+@media (max-width: 576px) {
+    .hero-overlay h1 {
+        font-size: 1.5rem !important;
+    }
+    
+    .btn-play {
+        font-size: 1rem;
+        padding: 10px 25px;
+    }
+    
+    .btn-play-large {
+        font-size: 1rem;
+        padding: 10px 20px;
+    }
+}
+
+/* Efeitos de Hover Melhorados */
+.btn-outline-primary:hover,
+.btn-outline-success:hover {
+    transform: scale(1.05);
+}
+
+.btn-outline-primary,
+.btn-outline-success {
+    transition: all 0.2s ease;
+}
+
+/* Destaque para Elementos Interativos */
+.btn:focus,
+.form-control:focus {
+    outline: none;
+    box-shadow: 0 0 0 0.2rem rgba(255, 82, 38, 0.25);
+}
+
+/* Tooltip customizado (opcional, caso queira adicionar depois) */
+[data-tooltip] {
+    position: relative;
+    cursor: help;
+}
+
+/* Estados vazios */
+.empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: #6c757d;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    opacity: 0.5;
+    margin-bottom: 1rem;
+}

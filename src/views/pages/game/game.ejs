@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Descubra o Fofoqueiro</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <link rel="stylesheet" href="style/game.css" />
+</head>
+<body>
+
+<h1>Descubra o Fofoqueiro</h1>
+<p>Vidas: <span id="vidas">3</span> | Pontos: <span id="pontos">0</span></p>
+
+<div class="dicas-container">
+  <button id="btnDica1">Dica 1: Ver Grafo de Amizades (1 ponto)</button>
+  <button id="btnDica2" disabled>Dica 2: Ver Confiabilidade (0 pontos)</button>
+</div>
+
+<div class="game-container hidden" id="gameContainer">
+  <div class="grafo-area">
+    <svg id="grafo" class="hidden"></svg>
+  </div>
+  <div class="texto-area">
+    <div class="info-box hidden" id="infoBox"></div>
+  </div>
+</div>
+
+<div id="popup" class="hidden"></div>
+
+<script src="js/game.js"></script>
+</body>
+</html>

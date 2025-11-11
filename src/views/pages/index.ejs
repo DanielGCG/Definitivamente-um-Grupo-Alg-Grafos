@@ -1,61 +1,116 @@
-<main class="container">
-    <div class="my-3">
-        <h2>Seja bem-vindo ao Jogo da Fofoca!</h2>
-        <p>Prepare-se para uma experiência divertida e cheia de surpresas!</p>
+<main class="container-fluid px-0">
+    <!-- Banner Principal -->
+    <div class="hero-banner position-relative">
+        <img src="/img/Jogo da Fofoca.png" class="img-fluid w-100" alt="Capa do Jogo da Fofoca" 
+             style="max-height: 300px; object-fit: cover; filter: brightness(0.8);">
+        <div class="hero-overlay position-absolute top-50 start-50 translate-middle text-center w-100">
+            <h1 class="display-3 text-white fw-bold text-shadow">Jogo da Fofoca</h1>
+            <p class="lead text-white text-shadow">Espalhe rumores, descubra segredos e seja o mestre da fofoca!</p>
+            <button class="btn btn-lg btn-play mt-3" onclick="window.location.href='/play'">
+                <i class="bi bi-play-fill"></i> JOGAR AGORA
+            </button>
+        </div>
     </div>
-    <div class="row">
-        <div class="col-12 col-md-6">
-            <div id="gameCarousel" class="carousel slide mb-4" data-bs-ride="carousel" data-bs-interval="3000">
-                <div class="carousel-inner">
-                    <div class="carousel-item active">
-                        <img src="/img/Jogo da Fofoca.png" class="d-block mx-auto w-100" alt="Capa do Jogo da Fofoca"
-                            style="display:block; object-fit: contain; height: auto; max-width: 100%;">
-                        <div class="carousel-caption d-none d-md-block">
-                            <h5>Jogo da Fofoca</h5>
-                            <p>Divirta-se: descubra ou disfarce as fofocas enquanto joga com seus amigos.</p>
+
+    <div class="container my-4">
+        <div class="row g-4">
+            <!-- Coluna Esquerda: Amigos e Busca -->
+            <div class="col-lg-3 col-md-12">
+                <!-- Buscar Usuários -->
+                <div class="card shadow-sm mb-4 card-custom">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-search"></i> Buscar Jogadores</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="input-group">
+                            <input type="text" id="searchUser" class="form-control" 
+                                   placeholder="Digite o nome...">
+                            <button class="btn btn-outline-secondary" type="button">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                        <div id="searchResults" class="mt-3"></div>
+                    </div>
+                </div>
+
+                <!-- Lista de Amigos -->
+                <div class="card shadow-sm card-custom">
+                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-people-fill"></i> Meus Amigos</h5>
+                        <span class="badge bg-light text-success" id="onlineCount">3 online</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush" id="friendsList">
+                            <!-- Será populado via JavaScript -->
                         </div>
                     </div>
                 </div>
-                <button class="carousel-control-prev" type="button" data-bs-target="#gameCarousel" data-bs-slide="prev">
-                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                    <span class="visually-hidden">Anterior</span>
-                </button>
-                <button class="carousel-control-next" type="button" data-bs-target="#gameCarousel" data-bs-slide="next">
-                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                    <span class="visually-hidden">Próximo</span>
-                </button>
             </div>
-            <div>
-                <button class="btn d-block mx-auto mb-4 w-100" onclick="window.location.href='/play'"
-                    style="background: linear-gradient(to right, #ff7e5f, #feb47b);">
-                    <h1 class="text-center">JOGUE AGORA!</h1>
-                </button>
-            </div>
-        </div>
-        <div class="col-12 col-md-6">
-            <div>
-                
-            </div>
-            <div class="d-flex flex-row gap-3 justify-content-center flex-wrap mb-4">
-                <div class="card" style="width: 18rem;">
-                    <img src="img/interrogacao.webp" class="card-img-top" alt="..."
-                        style="object-fit: contain; max-height: 10rem;">
-                    <div class="card-body">
-                        <h5 class="card-title">Como Jogar?</h5>
-                        <p class="card-text">Entenda quais são as tecnologias e algoritmos utilizados nesse jogo.</p>
-                        <a href="/how-to-play" class="btn btn-primary">Entenda</a>
+
+            <!-- Coluna Central: Ação Principal e Info Cards -->
+            <div class="col-lg-6 col-md-12">
+                <!-- Botão Principal de Ação -->
+                <div class="card shadow-sm mb-4 card-custom text-center p-4 bg-gradient-custom">
+                    <h2 class="texto_marcado mb-3">Seja bem-vindo ao Jogo da Fofoca!</h2>
+                    <p class="lead mb-4">Prepare-se para uma experiência divertida e cheia de surpresas!</p>
+                    <button class="btn btn-play-large" onclick="window.location.href='/play'">
+                        <i class="bi bi-controller"></i> COMEÇAR A JOGAR
+                    </button>
+                </div>
+
+                <!-- Cards Informativos -->
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="card shadow-sm h-100 card-custom card-hover">
+                            <img src="img/interrogacao.webp" class="card-img-top" alt="Como Jogar"
+                                 style="object-fit: contain; max-height: 10rem; padding: 1rem;">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="bi bi-question-circle"></i> Como Jogar?</h5>
+                                <p class="card-text">Entenda quais são as tecnologias e algoritmos utilizados nesse jogo.</p>
+                                <a href="/how-to-play" class="btn btn-primary w-100">
+                                    <i class="bi bi-book"></i> Entenda
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card shadow-sm h-100 card-custom card-hover">
+                            <img src="img/grafos.png" class="card-img-top" alt="Como Funciona"
+                                 style="object-fit: contain; max-height: 10rem; padding: 1rem;">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="bi bi-gear-fill"></i> Como funciona?</h5>
+                                <p class="card-text">Entenda o funcionamento das mecânicas do jogo.</p>
+                                <a href="/how-it-works" class="btn btn-primary w-100">
+                                    <i class="bi bi-lightbulb"></i> Entenda
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="card" style="width: 18rem;">
-                    <img src="img/grafos.png" class="card-img-top" alt="..."
-                        style="object-fit: contain; max-height: 10rem;">
-                    <div class="card-body">
-                        <h5 class="card-title">Como funciona?</h5>
-                        <p class="card-text">Entenda o funcionamento das mecânicas do jogo.</p>
-                        <a href="/how-it-works" class="btn btn-primary">Entenda</a>
+            </div>
+
+            <!-- Coluna Direita: Ranking -->
+            <div class="col-lg-3 col-md-12">
+                <div class="card shadow-sm card-custom">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0"><i class="bi bi-trophy-fill"></i> Ranking Global</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush" id="leaderboard">
+                            <!-- Será populado via JavaScript -->
+                        </div>
+                    </div>
+                    <div class="card-footer text-center bg-light">
+                        <small class="text-muted">Atualizado em tempo real</small>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </main>
+
+<!-- CSS Específico da Home -->
+<link rel="stylesheet" href="/style/home.css">
+
+<!-- Script JavaScript da página inicial -->
+<script src="/js/home.js"></script>

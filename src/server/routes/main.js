@@ -16,7 +16,7 @@ router.get('/play', (req, res) => {
         section: "- Jogar",
         description: "Entre no jogo e descubra quem é o fofoqueiro!",
     }
-    res.render('pages/play', { locals: locals });
+    res.render('pages/game/game', { locals: locals });
 });
 
 router.get('/how-to-play', (req, res) => {

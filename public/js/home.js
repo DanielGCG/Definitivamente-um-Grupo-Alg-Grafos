@@ -1,0 +1,264 @@
+// Dados estáticos para demonstração - Futuramente virá da API
+const leaderboardData = [
+    { rank: 1, name: "FofoqueiroPro", score: 15420, avatar: "👑" },
+    { rank: 2, name: "MestreDoRumor", score: 14850, avatar: "🎯" },
+    { rank: 3, name: "ReiFofoca", score: 13990, avatar: "⭐" },
+    { rank: 4, name: "EspalhadorLegendário", score: 12340, avatar: "🔥" },
+    { rank: 5, name: "SenhorSegredos", score: 11200, avatar: "🎭" }
+];
+
+const friendsData = [
+    { id: 1, name: "João Silva", status: "online", score: 8520, avatar: "🎮", lastSeen: "Agora" },
+    { id: 2, name: "Maria Santos", status: "online", score: 7240, avatar: "🌸", lastSeen: "Agora" },
+    { id: 3, name: "Pedro Oliveira", status: "online", score: 6890, avatar: "⚡", lastSeen: "Agora" },
+    { id: 4, name: "Ana Costa", status: "offline", score: 5430, avatar: "🎨", lastSeen: "2h atrás" },
+    { id: 5, name: "Carlos Souza", status: "offline", score: 4920, avatar: "🎯", lastSeen: "5h atrás" }
+];
+
+const allUsers = [
+    { id: 101, name: "Gabriel Martins", score: 6540, avatar: "🎵" },
+    { id: 102, name: "Beatriz Ferreira", score: 5980, avatar: "🎭" },
+    { id: 103, name: "Lucas Pereira", score: 5320, avatar: "🎪" },
+    { id: 104, name: "Camila Rodrigues", score: 4870, avatar: "🌺" },
+    { id: 105, name: "Rafael Dias", score: 4210, avatar: "🎸" },
+    { id: 106, name: "Amanda Vieira", score: 3950, avatar: "🦋" },
+    { id: 107, name: "Thiago Nunes", score: 3450, avatar: "🎯" },
+    { id: 108, name: "Larissa Gomes", score: 2890, avatar: "🌻" }
+];
+
+/**
+ * Renderiza o ranking de jogadores
+ */
+function renderLeaderboard() {
+    const leaderboardEl = document.getElementById('leaderboard');
+    if (!leaderboardEl) return;
+
+    leaderboardEl.innerHTML = leaderboardData.map(player => {
+        let medalClass = '';
+        let medal = '';
+        
+        if (player.rank === 1) {
+            medal = '🥇';
+            medalClass = 'rank-1';
+        } else if (player.rank === 2) {
+            medal = '🥈';
+            medalClass = 'rank-2';
+        } else if (player.rank === 3) {
+            medal = '🥉';
+            medalClass = 'rank-3';
+        } else {
+            medal = `${player.rank}º`;
+        }
+
+        return `
+            <div class="list-group-item leaderboard-item d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center flex-grow-1">
+                    <span class="rank-medal ${medalClass} me-2">${medal}</span>
+                    <div class="flex-grow-1">
+                        <div class="fw-bold">${player.avatar} ${player.name}</div>
+                        <small class="text-muted">
+                            <i class="bi bi-trophy"></i> ${player.score.toLocaleString()} pontos
+                        </small>
+                    </div>
+                </div>
+                <button class="btn btn-sm btn-outline-primary" onclick="viewProfile(${player.rank})" title="Ver Perfil">
+                    <i class="bi bi-eye"></i>
+                </button>
+            </div>
+        `;
+    }).join('');
+}
+
+/**
+ * Renderiza a lista de amigos
+ */
+function renderFriendsList() {
+    const friendsListEl = document.getElementById('friendsList');
+    if (!friendsListEl) return;
+
+    const onlineCount = friendsData.filter(f => f.status === 'online').length;
+    const onlineCountEl = document.getElementById('onlineCount');
+    if (onlineCountEl) {
+        onlineCountEl.textContent = `${onlineCount} online`;
+    }
+    
+    friendsListEl.innerHTML = friendsData.map(friend => {
+        const statusClass = friend.status === 'online' ? 'status-online' : 'status-offline';
+        const statusText = friend.status === 'online' ? 'Online' : friend.lastSeen;
+        
+        return `
+            <div class="list-group-item friend-item d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center flex-grow-1">
+                    <span class="${statusClass}" title="${statusText}"></span>
+                    <div class="flex-grow-1">
+                        <div class="fw-bold">${friend.avatar} ${friend.name}</div>
+                        <small class="text-muted">
+                            ${statusText} • 
+                            ${friend.score} pts
+                        </small>
+                    </div>
+                </div>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-success" onclick="challengeFriend(${friend.id}, '${friend.name}')" 
+                            title="Desafiar" ${friend.status === 'offline' ? 'disabled' : ''}>
+                        <i class="bi bi-controller"></i>
+                    </button>
+                    <button class="btn btn-outline-primary" onclick="chatFriend(${friend.id}, '${friend.name}')" 
+                            title="Mensagem">
+                        <i class="bi bi-chat-dots"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+/**
+ * Busca usuários por nome
+ * TODO: Integrar com API para busca no backend
+ */
+function searchUsers() {
+    const searchInput = document.getElementById('searchUser');
+    const searchResults = document.getElementById('searchResults');
+    
+    if (!searchInput || !searchResults) return;
+
+    const searchTerm = searchInput.value.trim();
+    
+    if (searchTerm.length < 2) {
+        searchResults.innerHTML = '<small class="text-muted d-block text-center py-2">Digite pelo menos 2 caracteres</small>';
+        return;
+    }
+
+    // TODO: Substituir por chamada à API
+    
+    searchResults.innerHTML = '<small class="text-muted d-block text-center py-2"><i class="bi bi-hourglass-split"></i> Busca será implementada com a API</small>';
+}
+
+/**
+ * Adiciona um usuário como amigo
+ * TODO: Integrar com API para adicionar amigo
+ */
+async function addFriend(userId, userName) {
+    // TODO: Implementar chamada à API
+    // const response = await fetch('/api/friends', {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify({ userId })
+    // });
+    // const result = await response.json();
+    
+    showNotification(`Funcionalidade será implementada com a API`, 'info');
+}
+
+/**
+ * Remove um usuário dos amigos
+ * TODO: Integrar com API para remover amigo
+ */
+async function removeFriend(userId, userName) {
+    // TODO: Implementar chamada à API
+    // const response = await fetch(`/api/friends/${userId}`, {
+    //     method: 'DELETE',
+    //     headers: { 'Content-Type': 'application/json' }
+    // });
+    // const result = await response.json();
+    
+    showNotification(`Funcionalidade será implementada com a API`, 'info');
+}
+
+/**
+ * Desafia um amigo para uma partida
+ */
+function challengeFriend(friendId, friendName) {
+    showNotification(`Desafio enviado para ${friendName}! Aguardando resposta...`, 'info');
+}
+
+/**
+ * Abre chat com um amigo
+ */
+function chatFriend(friendId, friendName) {
+    showNotification(`Chat com ${friendName} será implementado em breve!`, 'info');
+}
+
+/**
+ * Visualiza o perfil de um jogador
+ */
+function viewProfile(rank) {
+    const player = leaderboardData.find(p => p.rank === rank);
+    if (player) {
+        showNotification(`Perfil de ${player.name} será implementado em breve!`, 'info');
+    }
+}
+
+/**
+ * Exibe notificações toast
+ */
+function showNotification(message, type = 'info') {
+    // Cria um elemento de notificação
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);';
+    toast.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Remove após 4 segundos
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 150);
+    }, 4000);
+}
+
+/**
+ * Simula atualizações em tempo real do status dos amigos
+ */
+function simulateRealtimeUpdates() {
+    setInterval(() => {
+        // Altera aleatoriamente o status de um amigo
+        const randomIndex = Math.floor(Math.random() * friendsData.length);
+        const randomFriend = friendsData[randomIndex];
+        
+        // 30% de chance de mudar o status
+        if (Math.random() > 0.7) {
+            randomFriend.status = randomFriend.status === 'online' ? 'offline' : 'online';
+            randomFriend.lastSeen = randomFriend.status === 'online' ? 'Agora' : 'Agora mesmo';
+            renderFriendsList();
+        }
+    }, 15000); // Verifica a cada 15 segundos
+}
+
+/**
+ * Adiciona efeito de digitação no campo de busca
+ */
+function setupSearchDebounce() {
+    const searchInput = document.getElementById('searchUser');
+    if (!searchInput) return;
+
+    let debounceTimer;
+    searchInput.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(searchUsers, 300);
+    });
+}
+
+/**
+ * Inicializa a página
+ */
+function initializePage() {
+    renderLeaderboard();
+    renderFriendsList();
+    setupSearchDebounce();
+    simulateRealtimeUpdates();
+    
+    console.log('✅ Página inicial carregada com sucesso!');
+}
+
+// Inicializa quando o DOM estiver pronto
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializePage);
+} else {
+    initializePage();
+}
