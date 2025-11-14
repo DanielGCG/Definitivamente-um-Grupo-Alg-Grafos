@@ -4,8 +4,8 @@
   // Estado do jogo (encapsulado)
   let vidas = 3;
   let pontos = 0;
-  let tamanhoInicial = 6;
-  let nivelAtual = 6;
+  let tamanhoInicial = 8;
+  let nivelAtual = 8;
   let popupAmigoAtual = null;
   let svgElement = null;
   let verticesMarcados = new Set();
@@ -260,14 +260,14 @@
       for (const comunidade of comunidades) {
         for (let i = 0; i < comunidade.length; i++) {
           for (let j = i + 1; j < comunidade.length; j++) {
-            if (Math.random() < 0.6) links.push({source: comunidade[i], target: comunidade[j]});
+            if (Math.random() < 0.8) links.push({source: comunidade[i], target: comunidade[j]});
           }
         }
       }
       if (numComunidades > 1) {
         for (let c1 = 0; c1 < numComunidades; c1++) {
           for (let c2 = c1 + 1; c2 < numComunidades; c2++) {
-            const numPontes = Math.random() < 0.7 ? 1 : 2;
+            const numPontes = Math.floor(Math.random() * 4) + 4; // 4 a 7 pontes
             for (let p = 0; p < numPontes; p++) {
               const v1 = comunidades[c1][Math.floor(Math.random() * comunidades[c1].length)];
               const v2 = comunidades[c2][Math.floor(Math.random() * comunidades[c2].length)];
