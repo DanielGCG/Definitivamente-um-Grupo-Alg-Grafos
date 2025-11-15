@@ -1,0 +1,21 @@
+<nav class="navbar navbar-expand-lg navbar-light" role="navigation">
+    <a class="navbar-brand mx-3" href="/" style="font-family: 'Shrikhand', cursive; font-size: 1.5rem;">
+        <%= locals.title %> <%= locals.section %>
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
+        aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse justify-content-end" id="navbarSupportedContent">
+        <div class="navbar-nav me-3">
+            <a href="/login" class="btn btn-outline-primary me-2">Login</a>
+            <a href="/register" class="btn btn-primary">Registrar</a>
+        </div>
+    </div>
+</nav>
+
+<style>
+    nav.navbar {
+        background: #e9dabf;
+    }
+</style>

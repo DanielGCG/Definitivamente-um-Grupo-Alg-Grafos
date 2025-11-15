@@ -1,5 +1,13 @@
+/* 
+Nao podemos ter acento nas entidades;
+O token não pode ser utilizado como identificador primário ele é tão secreto quanto a senha;
+A senha deve ser criptografada com hash bcrypt (tamanho de 60 caracteres);
+Devemos seguir o seguinte padrão:       elemento_nomeentidade para evitar ambiguidades;
+*/
+
 CREATE TABLE Usuário (
-    token CHAR(255) PRIMARY KEY,
+    /* Devemos ter um ID gerado automaticamente (diferente do token) */
+    token CHAR(255) PRIMARY KEY, /* Devemos ter um token de 36 caracteres (UUID) */
     nome CHAR(100),
     senha CHAR(16),
     score NUMERIC,

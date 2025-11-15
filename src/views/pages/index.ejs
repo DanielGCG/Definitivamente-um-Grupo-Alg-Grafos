@@ -1,18 +1,19 @@
 <main class="container-fluid px-0">
     <!-- Banner Principal -->
     <div class="hero-banner position-relative">
-        <img src="/img/Jogo da Fofoca.png" class="img-fluid w-100" alt="Capa do Jogo da Fofoca" 
-             style="max-height: 300px; object-fit: cover; filter: brightness(0.8);">
+        <div class="ratio ratio-16x9" style="max-height:300px; overflow:hidden;">
+            <img src="/img/Jogo da Fofoca.gif" class="img-fluid" alt="Capa do Jogo da Fofoca" style="width:100%; height:100%; object-fit:cover; filter: brightness(1);">
+        </div>
         <div class="hero-overlay position-absolute top-50 start-50 translate-middle text-center w-100">
-            <h1 class="display-3 text-white fw-bold text-shadow">Jogo da Fofoca</h1>
-            <p class="lead text-white text-shadow">Espalhe rumores, descubra segredos e seja o mestre da fofoca!</p>
+            <h1 class="display-3 text-black fw-bold" style="font-family: 'Shrikhand', cursive;">Jogo da Fofoca</h1>
+            <p class="lead text-black">Descubra todos os fofoqueiros e mostre quem é o mestre da fofoca!</p>
             <button class="btn btn-lg btn-play mt-3" onclick="window.location.href='/play'">
                 <i class="bi bi-play-fill"></i> JOGAR AGORA
             </button>
         </div>
     </div>
 
-    <div class="container my-4">
+    <div class="my-4 mx-3">
         <div class="row g-4">
             <!-- Coluna Esquerda: Amigos e Busca -->
             <div class="col-lg-3 col-md-12">
@@ -37,7 +38,6 @@
                 <div class="card shadow-sm card-custom">
                     <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
                         <h5 class="mb-0"><i class="bi bi-people-fill"></i> Meus Amigos</h5>
-                        <span class="badge bg-light text-success" id="onlineCount">3 online</span>
                     </div>
                     <div class="card-body p-0">
                         <div class="list-group list-group-flush" id="friendsList">
@@ -49,15 +49,6 @@
 
             <!-- Coluna Central: Ação Principal e Info Cards -->
             <div class="col-lg-6 col-md-12">
-                <!-- Botão Principal de Ação -->
-                <div class="card shadow-sm mb-4 card-custom text-center p-4 bg-gradient-custom">
-                    <h2 class="texto_marcado mb-3">Seja bem-vindo ao Jogo da Fofoca!</h2>
-                    <p class="lead mb-4">Prepare-se para uma experiência divertida e cheia de surpresas!</p>
-                    <button class="btn btn-play-large" onclick="window.location.href='/play'">
-                        <i class="bi bi-controller"></i> COMEÇAR A JOGAR
-                    </button>
-                </div>
-
                 <!-- Cards Informativos -->
                 <div class="row g-3">
                     <div class="col-md-6">
@@ -67,9 +58,11 @@
                             <div class="card-body">
                                 <h5 class="card-title"><i class="bi bi-question-circle"></i> Como Jogar?</h5>
                                 <p class="card-text">Entenda quais são as tecnologias e algoritmos utilizados nesse jogo.</p>
-                                <a href="/how-to-play" class="btn btn-primary w-100">
-                                    <i class="bi bi-book"></i> Entenda
-                                </a>
+                                <div class="position-relative">
+                                    <a href="/how-to-play" class="btn btn-primary w-100">
+                                        <i class="bi bi-book"></i> Entenda
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -99,9 +92,6 @@
                         <div class="list-group list-group-flush" id="leaderboard">
                             <!-- Será populado via JavaScript -->
                         </div>
-                    </div>
-                    <div class="card-footer text-center bg-light">
-                        <small class="text-muted">Atualizado em tempo real</small>
                     </div>
                 </div>
             </div>

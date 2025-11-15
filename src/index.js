@@ -16,6 +16,11 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 app.use(express.static('public'));
 
+// Rota de Autenticação
+//app.use('/API/registro/', require('./server/routes/main'));
+
+// Rota de API
+//app.use('/api/', require('./server/routes/api'));
 
 // Rota principal
 app.use('/', require('./server/routes/main'));

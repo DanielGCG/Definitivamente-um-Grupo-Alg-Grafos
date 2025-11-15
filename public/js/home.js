@@ -1,29 +1,18 @@
 // Dados estáticos para demonstração - Futuramente virá da API
 const leaderboardData = [
-    { rank: 1, name: "FofoqueiroPro", score: 15420, avatar: "👑" },
-    { rank: 2, name: "MestreDoRumor", score: 14850, avatar: "🎯" },
-    { rank: 3, name: "ReiFofoca", score: 13990, avatar: "⭐" },
-    { rank: 4, name: "EspalhadorLegendário", score: 12340, avatar: "🔥" },
-    { rank: 5, name: "SenhorSegredos", score: 11200, avatar: "🎭" }
+    { rank: 1, name: "FofoqueiroPro", score: 25, avatar: "👑" },
+    { rank: 2, name: "MestreDoRumor", score: 24, avatar: "🎯" },
+    { rank: 3, name: "ReiFofoca", score: 23, avatar: "⭐" },
+    { rank: 4, name: "EspalhadorLegendário", score: 22, avatar: "🔥" },
+    { rank: 5, name: "SenhorSegredos", score: 21, avatar: "🎭" }
 ];
 
 const friendsData = [
-    { id: 1, name: "João Silva", status: "online", score: 8520, avatar: "🎮", lastSeen: "Agora" },
-    { id: 2, name: "Maria Santos", status: "online", score: 7240, avatar: "🌸", lastSeen: "Agora" },
-    { id: 3, name: "Pedro Oliveira", status: "online", score: 6890, avatar: "⚡", lastSeen: "Agora" },
-    { id: 4, name: "Ana Costa", status: "offline", score: 5430, avatar: "🎨", lastSeen: "2h atrás" },
-    { id: 5, name: "Carlos Souza", status: "offline", score: 4920, avatar: "🎯", lastSeen: "5h atrás" }
-];
-
-const allUsers = [
-    { id: 101, name: "Gabriel Martins", score: 6540, avatar: "🎵" },
-    { id: 102, name: "Beatriz Ferreira", score: 5980, avatar: "🎭" },
-    { id: 103, name: "Lucas Pereira", score: 5320, avatar: "🎪" },
-    { id: 104, name: "Camila Rodrigues", score: 4870, avatar: "🌺" },
-    { id: 105, name: "Rafael Dias", score: 4210, avatar: "🎸" },
-    { id: 106, name: "Amanda Vieira", score: 3950, avatar: "🦋" },
-    { id: 107, name: "Thiago Nunes", score: 3450, avatar: "🎯" },
-    { id: 108, name: "Larissa Gomes", score: 2890, avatar: "🌻" }
+    { id: 4, name: "Ana Costa", score: 13, avatar: "🎨", lastSeen: "2h atrás" },
+    { id: 5, name: "Carlos Souza", score: 14, avatar: "🎯", lastSeen: "5h atrás" },
+    { id: 1, name: "João Silva", score: 10, avatar: "🎮", lastSeen: "Agora" },
+    { id: 2, name: "Maria Santos", score: 11, avatar: "🌸", lastSeen: "Agora" },
+    { id: 3, name: "Pedro Oliveira", score: 12, avatar: "⚡", lastSeen: "Agora" },
 ];
 
 /**
@@ -76,36 +65,20 @@ function renderFriendsList() {
     const friendsListEl = document.getElementById('friendsList');
     if (!friendsListEl) return;
 
-    const onlineCount = friendsData.filter(f => f.status === 'online').length;
-    const onlineCountEl = document.getElementById('onlineCount');
-    if (onlineCountEl) {
-        onlineCountEl.textContent = `${onlineCount} online`;
-    }
-    
     friendsListEl.innerHTML = friendsData.map(friend => {
-        const statusClass = friend.status === 'online' ? 'status-online' : 'status-offline';
-        const statusText = friend.status === 'online' ? 'Online' : friend.lastSeen;
-        
         return `
             <div class="list-group-item friend-item d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center flex-grow-1">
-                    <span class="${statusClass}" title="${statusText}"></span>
                     <div class="flex-grow-1">
                         <div class="fw-bold">${friend.avatar} ${friend.name}</div>
                         <small class="text-muted">
-                            ${statusText} • 
-                            ${friend.score} pts
+                            <i class="bi bi-trophy"></i> ${friend.score} pts
                         </small>
                     </div>
                 </div>
                 <div class="btn-group btn-group-sm">
-                    <button class="btn btn-outline-success" onclick="challengeFriend(${friend.id}, '${friend.name}')" 
-                            title="Desafiar" ${friend.status === 'offline' ? 'disabled' : ''}>
-                        <i class="bi bi-controller"></i>
-                    </button>
-                    <button class="btn btn-outline-primary" onclick="chatFriend(${friend.id}, '${friend.name}')" 
-                            title="Mensagem">
-                        <i class="bi bi-chat-dots"></i>
+                    <button class="btn btn-outline-primary" onclick="viewProfile(${friend.id})" title="Ver Perfil">
+                        <i class="bi bi-person"></i>
                     </button>
                 </div>
             </div>
@@ -167,24 +140,10 @@ async function removeFriend(userId, userName) {
 }
 
 /**
- * Desafia um amigo para uma partida
- */
-function challengeFriend(friendId, friendName) {
-    showNotification(`Desafio enviado para ${friendName}! Aguardando resposta...`, 'info');
-}
-
-/**
- * Abre chat com um amigo
- */
-function chatFriend(friendId, friendName) {
-    showNotification(`Chat com ${friendName} será implementado em breve!`, 'info');
-}
-
-/**
  * Visualiza o perfil de um jogador
  */
-function viewProfile(rank) {
-    const player = leaderboardData.find(p => p.rank === rank);
+function viewProfile(id) {
+    const player = leaderboardData.find(p => p.id === id);
     if (player) {
         showNotification(`Perfil de ${player.name} será implementado em breve!`, 'info');
     }
@@ -210,24 +169,6 @@ function showNotification(message, type = 'info') {
         toast.classList.remove('show');
         setTimeout(() => toast.remove(), 150);
     }, 4000);
-}
-
-/**
- * Simula atualizações em tempo real do status dos amigos
- */
-function simulateRealtimeUpdates() {
-    setInterval(() => {
-        // Altera aleatoriamente o status de um amigo
-        const randomIndex = Math.floor(Math.random() * friendsData.length);
-        const randomFriend = friendsData[randomIndex];
-        
-        // 30% de chance de mudar o status
-        if (Math.random() > 0.7) {
-            randomFriend.status = randomFriend.status === 'online' ? 'offline' : 'online';
-            randomFriend.lastSeen = randomFriend.status === 'online' ? 'Agora' : 'Agora mesmo';
-            renderFriendsList();
-        }
-    }, 15000); // Verifica a cada 15 segundos
 }
 
 /**

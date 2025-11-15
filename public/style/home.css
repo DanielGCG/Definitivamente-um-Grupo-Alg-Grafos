@@ -94,38 +94,7 @@
 .friend-item, .leaderboard-item {
     padding: 0.75rem 1rem !important;
 }
-
-.status-online {
-    width: 12px;
-    height: 12px;
-    background-color: #28a745;
-    border-radius: 50%;
-    display: inline-block;
-    margin-right: 8px;
-    animation: pulse-online 2s infinite;
-    box-shadow: 0 0 5px rgba(40, 167, 69, 0.5);
-}
-
-.status-offline {
-    width: 12px;
-    height: 12px;
-    background-color: #6c757d;
-    border-radius: 50%;
-    display: inline-block;
-    margin-right: 8px;
-    opacity: 0.6;
-}
-
-@keyframes pulse-online {
-    0%, 100% {
-        opacity: 1;
-        transform: scale(1);
-    }
-    50% {
-        opacity: 0.7;
-        transform: scale(1.1);
-    }
-}
+/* Online status indicators removed per user request */
 
 /* Ranking - Medalhas */
 .rank-medal {

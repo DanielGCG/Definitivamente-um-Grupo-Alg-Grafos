@@ -1,175 +1,172 @@
 body {
-  font-family: 'Segoe UI', sans-serif;
-  background: #f2f2f2;
-  text-align: center;
+    text-align: center;
 }
-h1 { color: #333; margin-top: 20px; }
 svg {
-  width: 45vw;
-  height: 70vh;
-  max-width: 100%;
-  max-height: 70vh;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
-  display: block;
+    width: 45vw;
+    height: 70vh;
+    max-width: 100%;
+    max-height: 70vh;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    display: block;
 }
 .game-container {
-  display: flex;
-  gap: 20px;
-  margin: 20px auto;
-  max-width: 95vw;
-  align-items: flex-start;
+    display: flex;
+    gap: 20px;
+    margin: 20px auto;
+    max-width: 95vw;
+    align-items: flex-start;
 }
 .game-container.hidden {
-  display: none;
+    display: none;
 }
 .grafo-area {
-  flex: 1;
-  min-width: 45%;
+    flex: 1;
+    min-width: 45%;
 }
 .texto-area {
-  flex: 1;
-  min-width: 45%;
+    flex: 1;
+    min-width: 45%;
 }
 line.link {
-  stroke: #ccc;
-  stroke-width: 2px;
-  transition: stroke 0.2s;
+    stroke: #ccc;
+    stroke-width: 2px;
+    transition: stroke 0.2s;
 }
 line.link:hover {
-  stroke: #888;
+    stroke: #888;
 }
 .node circle {
-  stroke: #444;
-  stroke-width: 2px;
-  cursor: pointer;
-  fill: #6fa8dc;
-  transition: transform 0.3s, fill 0.3s;
+    stroke: #444;
+    stroke-width: 2px;
+    cursor: pointer;
+    fill: #6fa8dc;
+    transition: transform 0.3s, fill 0.3s;
 }
 .node:hover circle {
-  stroke: #ff4081;
-  stroke-width: 3px;
-  transform: scale(1.1);
+    stroke: #ff4081;
+    stroke-width: 3px;
+    transform: scale(1.1);
 }
 .node.marked circle {
-  fill: #ffd700;
-  stroke: #ff8c00;
-  stroke-width: 3px;
+    fill: #ffd700;
+    stroke: #ff8c00;
+    stroke-width: 3px;
 }
 line.link.marked {
-  stroke: #ffa500;
-  stroke-width: 3px;
+    stroke: #ffa500;
+    stroke-width: 3px;
 }
 line.link.user-link {
-  stroke: #4CAF50;
-  stroke-width: 3px;
-  stroke-dasharray: 5, 5;
+    stroke: #4CAF50;
+    stroke-width: 3px;
+    stroke-dasharray: 5, 5;
 }
 text {
-  font-weight: bold;
-  fill: white;
-  pointer-events: none;
+    font-weight: bold;
+    fill: white;
+    pointer-events: none;
 }
 .info-box {
-  background: #fff;
-  border-radius: 10px;
-  padding: 15px;
-  box-shadow: 0 0 6px rgba(0,0,0,0.1);
-  text-align: left;
-  max-height: 70vh;
-  overflow-y: auto;
+    background: #fff;
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 0 6px rgba(0,0,0,0.1);
+    text-align: left;
+    max-height: 70vh;
+    overflow-y: auto;
 }
 .info-box h3 {
-  margin-top: 0;
+    margin-top: 0;
 }
 .info-box .pessoa-item {
-  padding: 8px;
-  margin: 5px 0;
-  background: #f9f9f9;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background 0.2s;
+    padding: 8px;
+    margin: 5px 0;
+    background: #f9f9f9;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.2s;
 }
 .info-box .pessoa-item:hover {
-  background: #e3f2fd;
+    background: #e3f2fd;
 }
 .hidden { display: none; }
 #popup {
-  position: fixed;
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.25);
-  padding: 15px;
-  min-width: 250px;
-  z-index: 100;
-  text-align: left;
+    position: fixed;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.25);
+    padding: 15px;
+    min-width: 250px;
+    z-index: 100;
+    text-align: left;
 }
 #popup h3 {
-  margin-top: 0;
-  color: #444;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+    margin-top: 0;
+    color: #444;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 #popup .close-btn {
-  background: #ccc;
-  border: none;
-  color: #333;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 16px;
-  line-height: 1;
-  padding: 0;
+    background: #ccc;
+    border: none;
+    color: #333;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0;
 }
 #popup .close-btn:hover {
-  background: #999;
+    background: #999;
 }
 #popup button {
-  background: #ff4081;
-  border: none;
-  color: white;
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
+    background: #ff4081;
+    border: none;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
 }
 #popup button:hover {
-  background: #e73370;
+    background: #e73370;
 }
 #vidas {
-  font-weight: bold;
-  color: #d32f2f;
+    font-weight: bold;
+    color: #d32f2f;
 }
 #pontos {
-  font-weight: bold;
-  color: #1976d2;
+    font-weight: bold;
+    color: #1976d2;
 }
 .dicas-container {
-  margin: 15px auto;
-  max-width: 600px;
+    margin: 15px auto;
+    max-width: 600px;
 }
 .dicas-container button {
-  margin: 5px;
-  padding: 8px 16px;
-  background: #4CAF50;
-  border: none;
-  color: white;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
+    margin: 5px;
+    padding: 8px 16px;
+    background: #4CAF50;
+    border: none;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
 }
 .dicas-container button:hover {
-  background: #45a049;
+    background: #45a049;
 }
 .dicas-container button:disabled {
-  background: #ccc;
-  cursor: not-allowed;
+    background: #ccc;
+    cursor: not-allowed;
 }
 svg.hidden {
-  display: none;
+    display: none;
 }
 .info-box.hidden {
-  display: none;
+    display: none;
 }
