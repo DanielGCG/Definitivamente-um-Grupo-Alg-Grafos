@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const { verificarAutenticacao, checkAuthStatus } = require('../middleware/middleware');
 
-router.get('', (req, res) => {
+router.get('', verificarAutenticacao, (req, res) => {
     const locals = {
         title: "Jogo da Fofoca",
         section: "",
@@ -10,7 +11,7 @@ router.get('', (req, res) => {
     res.render('pages/index', { locals: locals });
 });
 
-router.get('/play', (req, res) => {
+router.get('/play', verificarAutenticacao, (req, res) => {
     const locals = {
         title: "Jogo da Fofoca",
         section: "- Jogar",
@@ -19,7 +20,7 @@ router.get('/play', (req, res) => {
     res.render('pages/game/game', { locals: locals });
 });
 
-router.get('/how-to-play', (req, res) => {
+router.get('/how-to-play', verificarAutenticacao, (req, res) => {
     const locals = {
         title: "Jogo da Fofoca",
         section: "- Como Jogar",
@@ -28,7 +29,7 @@ router.get('/how-to-play', (req, res) => {
     res.render('pages/how-to-play', { locals: locals });
 });
 
-router.get('/how-it-works', (req, res) => {
+router.get('/how-it-works', verificarAutenticacao, (req, res) => {
     const locals = {
         title: "Jogo da Fofoca",
         section: "- Como Funciona",
@@ -37,7 +38,7 @@ router.get('/how-it-works', (req, res) => {
     res.render('pages/how-it-works', { locals: locals });
 });
 
-router.get('/login', (req, res) => {
+router.get('/login', checkAuthStatus, (req, res) => {
     const locals = {
         title: "Jogo da Fofoca",
         section: "- Login",
@@ -46,7 +47,7 @@ router.get('/login', (req, res) => {
     res.render('pages/register/login', { locals: locals });
 });
 
-router.get('/register', (req, res) => {
+router.get('/register', checkAuthStatus, (req, res) => {
     const locals = {
         title: "Jogo da Fofoca",
         section: "- Registro",
@@ -54,6 +55,5 @@ router.get('/register', (req, res) => {
     }
     res.render('pages/register/register', { locals: locals });
 });
-
 
 module.exports = router;

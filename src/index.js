@@ -3,12 +3,14 @@ const path = require('path');
 const express = require('express');
 const expressLayout = require('express-ejs-layouts');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 
 const app = express();
 const PORT = process.env.PORTA || 3000;
 
 app.use(cors());
 app.use(express.json());
+app.use(cookieParser());
 
 app.use(expressLayout);
 app.set('layout', './layouts/main');
@@ -17,7 +19,7 @@ app.set('view engine', 'ejs');
 app.use(express.static('public'));
 
 // Rota de Autenticação
-//app.use('/API/registro/', require('./server/routes/main'));
+app.use('/API/registro/', require('./server/routes/auth'));
 
 // Rota de API
 //app.use('/api/', require('./server/routes/api'));

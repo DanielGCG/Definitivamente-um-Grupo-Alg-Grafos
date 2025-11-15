@@ -25,19 +25,8 @@ function renderLeaderboard() {
     leaderboardEl.innerHTML = leaderboardData.map(player => {
         let medalClass = '';
         let medal = '';
-        
-        if (player.rank === 1) {
-            medal = '🥇';
-            medalClass = 'rank-1';
-        } else if (player.rank === 2) {
-            medal = '🥈';
-            medalClass = 'rank-2';
-        } else if (player.rank === 3) {
-            medal = '🥉';
-            medalClass = 'rank-3';
-        } else {
-            medal = `${player.rank}º`;
-        }
+
+        medal = `${player.rank}º`;
 
         return `
             <div class="list-group-item leaderboard-item d-flex justify-content-between align-items-center">

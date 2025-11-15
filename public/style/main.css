@@ -1,5 +1,17 @@
+/* ========================================
+            ESTILOS GLOBAIS DO SITE
+   ======================================== */
+
+:root {
+    --marrom_escuro: #beaa87;
+    --marrom: #e9dabf;
+    --bege: linear-gradient(135deg, #fffac6 0%, #fff5e6 50%, #ffe6cc 100%);
+    --verde: #71aa73;
+    --verde_escuro: #609462;
+}
+
 body {
-    background: linear-gradient(135deg, #fffac6 0%, #fff5e6 50%, #ffe6cc 100%);
+    background: var(--bege);
     font-family: 'Montserrat', sans-serif;
     background-attachment: fixed;
     color: #333;
@@ -27,9 +39,9 @@ h3 {
 }
 
 .texto_marcado {
-    background-color: #e2e1cf;
-    padding: 8px 12px;
-    border-radius: 8px;
+    background-color: var(--verde);
+    padding: 4px 10px;
+    border-radius: 4px;
     display: inline-block;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
@@ -76,6 +88,66 @@ h3 {
 
 .btn:active {
     transform: scale(0.98);
+}
+
+/* Botões primários - paleta verde */
+.btn-primary {
+    background-color: var(--verde);
+    border-color: var(--verde);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: var(--verde_escuro);
+    border-color: var(--verde_escuro);
+    color: white;
+}
+
+.btn-primary:active {
+    background-color: var(--verde_escuro) !important;
+    border-color: var(--verde_escuro) !important;
+    color: white !important;
+    transform: scale(0.98);
+}
+
+.btn-primary:focus {
+    background-color: var(--verde_escuro);
+    border-color: var(--verde_escuro);
+    box-shadow: 0 0 0 0.2rem rgba(139, 197, 141, 0.5);
+}
+
+/* Efeitos de Hover para botões outline */
+.btn-outline-primary {
+    border-color: var(--verde);
+    color: var(--verde);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--verde);
+    border-color: var(--verde);
+    color: white;
+    transform: scale(1.05);
+}
+
+.btn-outline-primary:active {
+    background-color: var(--verde_escuro) !important;
+    border-color: var(--verde_escuro) !important;
+    color: white !important;
+    transform: scale(0.98);
+}
+
+.btn-outline-success:hover {
+    transform: scale(1.05);
+}
+
+.btn-outline-primary,
+.btn-outline-success {
+    transition: all 0.2s ease;
+}
+
+/* Destaque para botões em foco */
+.btn:focus {
+    outline: none;
 }
 
 /* Cards com sombras mais suaves */

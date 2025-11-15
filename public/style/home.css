@@ -149,13 +149,6 @@
     border-top: 2px solid rgba(0,0,0,0.05);
 }
 
-/* Badges Customizados */
-.badge {
-    padding: 6px 12px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-}
-
 /* Grupos de Botões */
 .btn-group-sm .btn {
     padding: 4px 8px;
@@ -174,7 +167,7 @@
 }
 
 #searchUser:focus {
-    border-color: #ff5226;
+    border-color: var(--marrom_escuro);
     box-shadow: 0 0 0 0.2rem rgba(255, 82, 38, 0.15);
 }
 
@@ -240,96 +233,8 @@
     }
 }
 
-/* Responsividade */
-@media (max-width: 992px) {
-    .hero-overlay h1 {
-        font-size: 2rem !important;
-    }
-    
-    .hero-overlay p {
-        font-size: 1rem !important;
-    }
-    
-    .btn-play {
-        font-size: 1.2rem;
-        padding: 12px 30px;
-    }
-    
-    .btn-play-large {
-        font-size: 1.4rem;
-        padding: 15px 35px;
-    }
-    
-    .rank-medal {
-        font-size: 1.2rem;
-        min-width: 30px;
-    }
-}
-
-@media (max-width: 768px) {
-    .hero-banner img {
-        max-height: 200px !important;
-    }
-    
-    .card-custom {
-        margin-bottom: 1rem;
-    }
-    
-    .btn-play-large {
-        font-size: 1.2rem;
-        padding: 12px 25px;
-    }
-}
-
-@media (max-width: 576px) {
-    .hero-overlay h1 {
-        font-size: 1.5rem !important;
-    }
-    
-    .btn-play {
-        font-size: 1rem;
-        padding: 10px 25px;
-    }
-    
-    .btn-play-large {
-        font-size: 1rem;
-        padding: 10px 20px;
-    }
-}
-
-/* Efeitos de Hover Melhorados */
-.btn-outline-primary:hover,
-.btn-outline-success:hover {
-    transform: scale(1.05);
-}
-
-.btn-outline-primary,
-.btn-outline-success {
-    transition: all 0.2s ease;
-}
-
 /* Destaque para Elementos Interativos */
-.btn:focus,
 .form-control:focus {
     outline: none;
     box-shadow: 0 0 0 0.2rem rgba(255, 82, 38, 0.25);
-}
-
-/* Tooltip customizado (opcional, caso queira adicionar depois) */
-[data-tooltip] {
-    position: relative;
-    cursor: help;
-}
-
-/* Estados vazios */
-.empty-state {
-    text-align: center;
-    padding: 2rem;
-    color: #6c757d;
-}
-
-.empty-state i {
-    font-size: 3rem;
-    opacity: 0.5;
-    margin-bottom: 1rem;
 }
