@@ -1,29 +1,6 @@
 // Importar usuários estáticos para validação de token
 const usuarios_estaticos = require('../static_user.json');
 
-// Middleware para verificar se o usuário está autenticado
-const verificarAutenticacao = (req, res, next) => {
-    const token = req.cookies?.token_usuario;
-    
-    if (!token) {
-        return res.redirect('/login');
-    }
-    
-    // Verificar se o token existe na base de dados
-    const usuario = usuarios_estaticos.find(u => u.token_usuario === token);
-    
-    if (!usuario) {
-        // Token inválido ou expirado
-        res.clearCookie('token_usuario');
-        return res.redirect('/login');
-    }
-    
-    res.locals.isAuthenticated = true;
-    res.locals.token = token;
-    res.locals.usuario = usuario;
-    next();
-};
-
 // Middleware para adicionar status de autenticação a todas as rotas
 const checkAuthStatus = (req, res, next) => {
     const token = req.cookies?.token_usuario;
@@ -33,9 +10,12 @@ const checkAuthStatus = (req, res, next) => {
         const usuario = usuarios_estaticos.find(u => u.token_usuario === token);
         
         if (usuario) {
+            // Não expor a senha para as views/responses: criar cópia sem `senha_usuario`
+            const { senha_usuario, ...usuario_sem_senha } = usuario;
+
             res.locals.isAuthenticated = true;
             res.locals.token = token;
-            res.locals.usuario = usuario;
+            res.locals.usuario = usuario_sem_senha;
         } else {
             // Token inválido, limpar cookie
             res.clearCookie('token_usuario');
@@ -53,6 +33,5 @@ const checkAuthStatus = (req, res, next) => {
 };
 
 module.exports = {
-    verificarAutenticacao,
     checkAuthStatus
 };

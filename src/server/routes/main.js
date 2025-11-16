@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { verificarAutenticacao, checkAuthStatus } = require('../middleware/middleware');
+const { checkAuthStatus } = require('../middleware/middleware');
 
-router.get('', verificarAutenticacao, (req, res) => {
+router.get('', checkAuthStatus, (req, res) => {
     const locals = {
         title: "Jogo da Fofoca",
         section: "",
@@ -11,7 +11,7 @@ router.get('', verificarAutenticacao, (req, res) => {
     res.render('pages/index', { locals: locals });
 });
 
-router.get('/play', verificarAutenticacao, (req, res) => {
+router.get('/play', checkAuthStatus, (req, res) => {
     const locals = {
         title: "Jogo da Fofoca",
         section: "- Jogar",
@@ -20,7 +20,7 @@ router.get('/play', verificarAutenticacao, (req, res) => {
     res.render('pages/game/game', { locals: locals });
 });
 
-router.get('/how-to-play', verificarAutenticacao, (req, res) => {
+router.get('/how-to-play', checkAuthStatus, (req, res) => {
     const locals = {
         title: "Jogo da Fofoca",
         section: "- Como Jogar",
@@ -29,7 +29,7 @@ router.get('/how-to-play', verificarAutenticacao, (req, res) => {
     res.render('pages/how-to-play', { locals: locals });
 });
 
-router.get('/how-it-works', verificarAutenticacao, (req, res) => {
+router.get('/how-it-works', checkAuthStatus, (req, res) => {
     const locals = {
         title: "Jogo da Fofoca",
         section: "- Como Funciona",
@@ -54,6 +54,15 @@ router.get('/register', checkAuthStatus, (req, res) => {
         description: "Crie uma conta para jogar o Jogo da Fofoca.",
     }
     res.render('pages/register/register', { locals: locals });
+});
+
+router.get('/editarperfil', checkAuthStatus, (req, res) => {
+    const locals = {
+        title: "Jogo da Fofoca",
+        section: "- Editar Perfil",
+        description: "Altere seu nome de usuário, foto de perfil ou senha.",
+    }
+    res.render('pages/edit-profile', { locals: locals });
 });
 
 module.exports = router;

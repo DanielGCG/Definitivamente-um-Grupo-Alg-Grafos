@@ -1,0 +1,109 @@
+<div class="container my-4">
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-8">
+      <div class="card mb-4">
+        <div class="card-body">
+          <h4 class="card-title">Editar Perfil</h4>
+          <p class="text-muted">Atualize seu nome de usuário e a URL da sua foto de perfil.</p>
+
+          <form id="profileForm">
+            <div class="mb-3">
+              <label for="nome_usuario" class="form-label">Usuário</label>
+              <input type="text" id="nome_usuario" name="nome_usuario" class="form-control" required value="<%= usuario ? usuario.nome_usuario : '' %>">
+            </div>
+            <div class="mb-3">
+              <label for="foto_usuario" class="form-label">URL da Foto de Perfil</label>
+              <input type="url" id="foto_usuario" name="foto_usuario" class="form-control" placeholder="https://..." value="<%= usuario ? usuario.foto_usuario : '' %>">
+            </div>
+
+            <div id="profileMessage" class="alert d-none" role="alert"></div>
+            <button type="submit" class="btn btn-primary">Salvar alterações</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <h4 class="card-title">Alterar Senha</h4>
+          <p class="text-muted">Informe sua senha atual e escolha uma nova senha.</p>
+
+          <form id="passwordForm">
+            <div class="mb-3">
+              <label for="currentPassword" class="form-label">Senha Atual</label>
+              <input type="password" id="currentPassword" name="currentPassword" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label for="newPassword" class="form-label">Nova Senha</label>
+              <input type="password" id="newPassword" name="newPassword" class="form-control" required>
+            </div>
+
+            <div id="passwordMessage" class="alert d-none" role="alert"></div>
+            <button type="submit" class="btn btn-warning">Alterar senha</button>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// Atualizar perfil (nome e foto)
+document.getElementById('profileForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const nome_usuario = document.getElementById('nome_usuario').value.trim();
+  const foto_usuario = document.getElementById('foto_usuario').value.trim();
+  const profileMessage = document.getElementById('profileMessage');
+  profileMessage.className = 'alert d-none';
+
+  try{
+    const res = await fetch('/API/user/profile/self', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nome_usuario, foto_usuario })
+    });
+    const result = await res.json();
+    if(res.ok){
+      profileMessage.className = 'alert alert-success';
+      profileMessage.textContent = result.message || 'Perfil atualizado com sucesso.';
+    } else {
+      profileMessage.className = 'alert alert-danger';
+      profileMessage.textContent = result.message || 'Erro ao atualizar o perfil.';
+    }
+  }catch(err){
+    profileMessage.className = 'alert alert-danger';
+    profileMessage.textContent = 'Erro de rede ao atualizar o perfil.';
+  }
+});
+
+// Alterar senha
+document.getElementById('passwordForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const currentPassword = document.getElementById('currentPassword').value;
+  const newPassword = document.getElementById('newPassword').value;
+  const passwordMessage = document.getElementById('passwordMessage');
+  passwordMessage.className = 'alert d-none';
+
+  try{
+    const res = await fetch('/API/user/password/self', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentPassword, newPassword })
+    });
+    const result = await res.json();
+    if(res.ok){
+      passwordMessage.className = 'alert alert-success';
+      passwordMessage.textContent = result.message || 'Senha alterada com sucesso.';
+      // limpar campos
+      document.getElementById('currentPassword').value = '';
+      document.getElementById('newPassword').value = '';
+    } else {
+      passwordMessage.className = 'alert alert-danger';
+      passwordMessage.textContent = result.message || 'Erro ao alterar a senha.';
+    }
+  }catch(err){
+    passwordMessage.className = 'alert alert-danger';
+    passwordMessage.textContent = 'Erro de rede ao alterar a senha.';
+  }
+});
+</script>
