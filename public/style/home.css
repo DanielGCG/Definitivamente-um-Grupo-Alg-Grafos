@@ -94,32 +94,6 @@
 .friend-item, .leaderboard-item {
     padding: 0.75rem 1rem !important;
 }
-/* Online status indicators removed per user request */
-
-/* Ranking - Medalhas */
-.rank-medal {
-    font-size: 1.5rem;
-    margin-right: 10px;
-    font-weight: bold;
-    min-width: 40px;
-    display: inline-block;
-    text-align: center;
-}
-
-.rank-1 { 
-    color: #FFD700;
-    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-}
-
-.rank-2 { 
-    color: #C0C0C0;
-    text-shadow: 0 0 10px rgba(192, 192, 192, 0.5);
-}
-
-.rank-3 { 
-    color: #CD7F32;
-    text-shadow: 0 0 10px rgba(205, 127, 50, 0.5);
-}
 
 /* Busca de Usuários */
 .search-result-item {

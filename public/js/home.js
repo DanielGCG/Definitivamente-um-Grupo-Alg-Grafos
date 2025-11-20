@@ -181,7 +181,6 @@ function initializePage() {
     renderLeaderboard();
     renderFriendsList();
     setupSearchDebounce();
-    simulateRealtimeUpdates();
     
     console.log('✅ Página inicial carregada com sucesso!');
 }

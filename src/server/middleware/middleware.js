@@ -5,6 +5,10 @@ const usuarios_estaticos = require('../static_user.json');
 const checkAuthStatus = (req, res, next) => {
     const token = req.cookies?.token_usuario;
     
+    // Rotas públicas que não requerem autenticação
+    const rotasPublicas = ['/login', '/register'];
+    const isRotaPublica = rotasPublicas.includes(req.path);
+    
     if (token) {
         // Verificar se o token é válido
         const usuario = usuarios_estaticos.find(u => u.token_usuario === token);
@@ -16,20 +20,24 @@ const checkAuthStatus = (req, res, next) => {
             res.locals.isAuthenticated = true;
             res.locals.token = token;
             res.locals.usuario = usuario_sem_senha;
+            next();
         } else {
-            // Token inválido, limpar cookie
+            // Token inválido, limpar cookie e redirecionar para login
             res.clearCookie('token_usuario');
-            res.locals.isAuthenticated = false;
-            res.locals.token = null;
-            res.locals.usuario = null;
+            return res.redirect('/login');
         }
     } else {
+        // Sem token: permitir apenas rotas públicas
         res.locals.isAuthenticated = false;
         res.locals.token = null;
         res.locals.usuario = null;
+        
+        if (isRotaPublica) {
+            next();
+        } else {
+            return res.redirect('/login');
+        }
     }
-    
-    next();
 };
 
 module.exports = {
