@@ -1,8 +1,7 @@
-// Importar usuários estáticos para validação de token
-const usuarios_estaticos = require('../static_user.json');
+const db = require('../db/database');
 
 // Middleware para adicionar status de autenticação a todas as rotas
-const checkAuthStatus = (req, res, next) => {
+const checkAuthStatus = async (req, res, next) => {
     const token = req.cookies?.token_usuario;
     
     // Rotas públicas que não requerem autenticação
@@ -10,19 +9,24 @@ const checkAuthStatus = (req, res, next) => {
     const isRotaPublica = rotasPublicas.includes(req.path);
     
     if (token) {
-        // Verificar se o token é válido
-        const usuario = usuarios_estaticos.find(u => u.token_usuario === token);
-        
-        if (usuario) {
-            // Não expor a senha para as views/responses: criar cópia sem `senha_usuario`
-            const { senha_usuario, ...usuario_sem_senha } = usuario;
+        try {
+            // Verificar se o token é válido no banco de dados
+            const [rows] = await db.query('SELECT id_usuario, nome_usuario, foto_usuario, score_usuario FROM usuario WHERE token_usuario = ? LIMIT 1', [token]);
+            
+            if (rows.length > 0) {
+                const usuario = rows[0];
 
-            res.locals.isAuthenticated = true;
-            res.locals.token = token;
-            res.locals.usuario = usuario_sem_senha;
-            next();
-        } else {
-            // Token inválido, limpar cookie e redirecionar para login
+                res.locals.isAuthenticated = true;
+                res.locals.token = token;
+                res.locals.usuario = usuario;
+                next();
+            } else {
+                // Token inválido, limpar cookie e redirecionar para login
+                res.clearCookie('token_usuario');
+                return res.redirect('/login');
+            }
+        } catch (err) {
+            console.error('Erro ao verificar token:', err);
             res.clearCookie('token_usuario');
             return res.redirect('/login');
         }
