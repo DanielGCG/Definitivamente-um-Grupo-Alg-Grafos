@@ -57,7 +57,7 @@ document.getElementById('profileForm').addEventListener('submit', async (e) => {
   profileMessage.className = 'alert d-none';
 
   try{
-    const res = await fetch('/API/user/profile/self', {
+    const res = await fetch('/API/user', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ nome_usuario, foto_usuario })
