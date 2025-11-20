@@ -22,7 +22,7 @@ app.use(express.static('public'));
 app.use('/API/registro/', require('./server/routes/auth'));
 
 // Rota de Autenticação
-app.use('/API/user/', require('./server/routes/user'));
+app.use('/API/user/', require('./server/routes/usuarios'));
 
 // Rota de API
 //app.use('/api/', require('./server/routes/api'));

@@ -30,7 +30,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
     errorMessage.classList.add('d-none');
     
     try {
-        const response = await fetch('/API/registro/register', {
+        const response = await fetch('/API/user', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

@@ -4,9 +4,9 @@ CREATE TABLE Usuario (
     token_usuario VARCHAR(36) NOT NULL UNIQUE,
     nome_usuario VARCHAR(50) NOT NULL,
     senha_usuario VARCHAR(60) NOT NULL,
-    score_usuario INTEGER,
+    score_usuario INTEGER DEFAULT 0,
     foto_usuario VARCHAR(500),
-    id_usuario INTEGER PRIMARY KEY
+    id_usuario INTEGER AUTO_INCREMENT PRIMARY KEY
 );
 
 CREATE TABLE Partida (
