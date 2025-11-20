@@ -1,9 +1,9 @@
 /* physical db */
 
 CREATE TABLE Usuario (
-    token_usuario VARCHAR(36) NOT NULL,
+    token_usuario VARCHAR(36) NOT NULL UNIQUE,
     nome_usuario VARCHAR(50) NOT NULL,
-    senha_usuario VARCHAR(60),
+    senha_usuario VARCHAR(60) NOT NULL,
     score_usuario INTEGER,
     foto_usuario VARCHAR(500),
     id_usuario INTEGER PRIMARY KEY
