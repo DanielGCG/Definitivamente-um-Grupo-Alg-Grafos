@@ -6,7 +6,7 @@ const ROUNDS = 10;
 // Ranking de usuários pela quantidade de pontos no jogo
 exports.listarUsuariosRanking = async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT id_usuario, nome_usuario, score_usuario FROM usuario ORDER BY score_usuario DESC LIMIT 10');
+        const [rows] = await db.query('SELECT id_usuario, nome_usuario, score_usuario, foto_usuario FROM usuario ORDER BY score_usuario DESC LIMIT 10');
         res.json(rows);
     } catch (err) {
         console.error('Erro ao listar usuários por ranking:', err);

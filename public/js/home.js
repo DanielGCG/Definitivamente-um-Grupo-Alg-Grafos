@@ -285,13 +285,6 @@ function viewProfile(id) {
         }
     }
 
-    // fallback para dados estáticos (compatibilidade)
-    const playerStatic = leaderboardData.find(p => p.rank === id || p.name === id);
-    if (playerStatic) {
-        showNotification(`Perfil de ${playerStatic.name} será implementado em breve!`, 'info');
-        return;
-    }
-
     showNotification('Perfil não encontrado.', 'warning');
 }
 
@@ -301,7 +294,7 @@ function showProfileModal(user) {
     const contentEl = document.getElementById('profileModalContent');
     if (!overlay || !contentEl) return;
 
-    const foto = user.foto_usuario || '/img/usuario.png';
+    const foto = user.foto_usuario;
     const nome = user.nome_usuario || '—';
     const score = (user.score_usuario != null) ? user.score_usuario : (user.score != null ? user.score : 0);
     const userId = user.id_usuario ?? user.id ?? null;
