@@ -17,6 +17,7 @@
     "ejs": "^3.1.10",
     "express": "^5.1.0",
     "express-ejs-layouts": "^2.5.1",
+    "import": "^0.0.6",
     "mysql2": "^3.15.3",
     "uuid": "^9.0.1"
   },

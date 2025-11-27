@@ -18,19 +18,27 @@ exports.criarUsuario = async (req, res) => {
         const { nome_usuario, senha_usuario,foto_usuario  } = req.body;
 
         if (!nome_usuario || !senha_usuario) {
+<<<<<<< Updated upstream
             return res.status(400).json({ message: 'Nome de usuário e senha são obrigatórios.' });
+=======
+            return res.status(400).json({ message: 'Nome de usuário e senha são obrigatórios. Tente novamente!' });
+>>>>>>> Stashed changes
         }
         if (typeof nome_usuario !== 'string' || typeof senha_usuario !== 'string') {
-            return res.status(400).json({ message: 'Formato inválido' });
+            return res.status(400).json({ message: 'Formato de nome ou senha inválidos. Tente novamente!' });
         }
         if (nome_usuario.length < 3 || senha_usuario.length < 5) {
+<<<<<<< Updated upstream
             return res.status(400).json({ message: 'Utilize no mínimo 3 caracteres para o nome e 5 caracteres para a senha.' });
+=======
+            return res.status(400).json({ message: 'Nome mínimo 3 caracteres; senha mínimo 5 caracteres' });
+>>>>>>> Stashed changes
         }
 
         // checar duplicata
         const [existing] = await db.query('SELECT id_usuario FROM usuario WHERE nome_usuario = ? LIMIT 1', [nome_usuario]);
         if (existing.length > 0) {
-            return res.status(409).json({ message: 'Nome de usuário já existe' });
+            return res.status(409).json({ message: 'Nome de usuário já existe. Tente novamente!' });
         }
         
         const senhaHash = await bcrypt.hash(senha_usuario, ROUNDS); //Encriptação da senha
