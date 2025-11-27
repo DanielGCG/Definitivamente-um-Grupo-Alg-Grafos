@@ -23,7 +23,11 @@ exports.criarUsuario = async (req, res) => {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             return res.status(400).json({ message: 'Nome de usuário e senha são obrigatórios.' });
+=======
+            return res.status(400).json({ message: 'Nome de usuário e senha são obrigatórios. Tente novamente!' });
+>>>>>>> Stashed changes
 =======
             return res.status(400).json({ message: 'Nome de usuário e senha são obrigatórios. Tente novamente!' });
 >>>>>>> Stashed changes
@@ -49,8 +53,11 @@ exports.criarUsuario = async (req, res) => {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             return res.status(400).json({ message: 'Utilize no mínimo 3 caracteres para o nome e 5 caracteres para a senha.' });
 =======
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 =======
