@@ -119,7 +119,6 @@ function renderFriendsList() {
 
 /**
  * Busca usuários por nome
- * TODO: Integrar com API para busca no backend
  */
 function searchUsers() {
     const searchInput = document.getElementById('searchUser');
@@ -134,9 +133,43 @@ function searchUsers() {
         return;
     }
 
-    // TODO: Substituir por chamada à API
-    
-    searchResults.innerHTML = '<small class="text-muted d-block text-center py-2"><i class="bi bi-hourglass-split"></i> Busca será implementada com a API</small>';
+    // Exibe indicador de carregamento
+    searchResults.innerHTML = '<small class="text-muted d-block text-center py-2"><i class="bi bi-hourglass-split"></i> Buscando...</small>';
+
+    // Chama a API para buscar os usuários pelo nome
+    fetch(`/API/user/search?nome=${encodeURIComponent(searchTerm)}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Erro na busca');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.length === 0) {
+                searchResults.innerHTML = '<small class="text-muted d-block text-center py-2">Nenhum usuário encontrado</small>';
+                return;
+            }
+            searchResults.innerHTML = data.map(user => {
+                return `
+                    <div class="list-group-item search-result-item d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center flex-grow-1">
+                            <div class="flex-grow-1">
+                                <div class="fw-bold"><img src="${user.foto_usuario}" alt="${user.nome_usuario}" class="rounded-circle me-2" width="30" height="30"> ${user.nome_usuario}</div>
+                            </div>
+                        </div>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-primary" onclick="addFriend(${user.id_usuario}, '${user.nome_usuario}')" title="Adicionar Amigo">
+                                <i class="bi bi-person-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        })
+        .catch(err => {
+            console.error('Erro ao buscar usuários:', err);
+            searchResults.innerHTML = '<small class="text-danger d-block text-center py-2">Erro ao buscar usuários. Tente novamente.</small>';
+        });
 }
 
 /**

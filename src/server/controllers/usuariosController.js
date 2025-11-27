@@ -13,6 +13,26 @@ exports.listarUsuariosRanking = async (req, res) => {
     }
 };
 
+exports.listarUsuariosPorNome = async (req, res) => {
+    try {
+        const nomeBusca = (req.query.nome || req.query.q || '').trim();
+        if (!nomeBusca) {
+            return res.status(400).json({ message: 'Erro, nome é obrigatório.' });
+        }
+
+        const param = `%${nomeBusca}%`;
+        const [rows] = await db.query(
+            'SELECT id_usuario, nome_usuario, foto_usuario FROM usuario WHERE nome_usuario LIKE ? LIMIT 10',
+            [param]
+        );
+
+        return res.status(200).json(rows);
+    } catch (err) {
+        console.error('Erro ao listar usuários por nome:', err);
+        return res.status(500).json({ message: 'Erro no banco de dados.' });
+    }
+};
+
 exports.criarUsuario = async (req, res) => {
     try {
         const { nome_usuario, senha_usuario,foto_usuario  } = req.body;
