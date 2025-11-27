@@ -5,7 +5,7 @@ const ROUNDS = 10;
 
 exports.listarUsuariosRanking = async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT id_usuario, nome_usuario FROM usuario ORDER BY score_usuario DESC LIMIT 10');
+        const [rows] = await db.query('SELECT id_usuario, nome_usuario, score_usuario FROM usuario ORDER BY score_usuario DESC LIMIT 10');
         res.json(rows);
     } catch (err) {
         console.error('Erro ao listar usuários por ranking:', err);
@@ -169,3 +169,42 @@ exports.loginUsuario = async (req, res) => {
         return res.status(500).json({ message: 'Erro interno.' });
     }
 }
+
+// Alterar senha do próprio usuário (requere cookie token_usuario)
+exports.alterarSenha = async (req, res) => {
+    try {
+        const token_usuario = req.cookies?.token_usuario;
+        if (!token_usuario) return res.status(401).json({ message: 'Não autenticado.' });
+
+        const { currentPassword, newPassword } = req.body;
+        if (!currentPassword || !newPassword) return res.status(400).json({ message: 'Senha atual e nova senha são obrigatórias.' });
+        if (typeof newPassword !== 'string' || newPassword.length < 5) return res.status(400).json({ message: 'A nova senha precisa ter no mínimo 5 caracteres.' });
+
+        // buscar usuário pelo token
+        const [rows] = await db.query('SELECT id_usuario, senha_usuario FROM usuario WHERE token_usuario = ? LIMIT 1', [token_usuario]);
+        if (!rows || rows.length === 0) return res.status(404).json({ message: 'Usuário não encontrado.' });
+        const user = rows[0];
+
+        // verificar senha atual
+        const senhaValida = await bcrypt.compare(currentPassword, user.senha_usuario);
+        if (!senhaValida) return res.status(401).json({ message: 'Senha atual incorreta.' });
+
+        // hashear nova senha e gerar novo token (invalida sessões antigas)
+        const novaHash = await bcrypt.hash(newPassword, ROUNDS);
+        const novoToken = uuidgen();
+        await db.query('UPDATE usuario SET senha_usuario = ?, token_usuario = ? WHERE id_usuario = ?', [novaHash, novoToken, user.id_usuario]);
+
+        // setar novo cookie
+        res.cookie('token_usuario', novoToken, {
+            httpOnly: true,
+            secure: false,
+            sameSite: 'lax',
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        });
+
+        return res.status(200).json({ message: 'Senha alterada com sucesso.' });
+    } catch (err) {
+        console.error('Erro ao alterar senha:', err);
+        return res.status(500).json({ message: 'Erro interno.' });
+    }
+};

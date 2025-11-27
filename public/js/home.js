@@ -1,11 +1,53 @@
-// Dados estáticos para demonstração - Futuramente virá da API
-const leaderboardData = [
-    { rank: 1, name: "FofoqueiroPro", score: 25, avatar: "👑" },
-    { rank: 2, name: "MestreDoRumor", score: 24, avatar: "🎯" },
-    { rank: 3, name: "ReiFofoca", score: 23, avatar: "⭐" },
-    { rank: 4, name: "EspalhadorLegendário", score: 22, avatar: "🔥" },
-    { rank: 5, name: "SenhorSegredos", score: 21, avatar: "🎭" }
-];
+
+// Renderiza leaderboard vindo da API
+function renderLeaderboardFromApi(data) {
+    const leaderboardEl = document.getElementById('leaderboard');
+    if (!leaderboardEl) return;
+
+    leaderboardEl.innerHTML = (data || []).map((player, index) => {
+        const rank = index + 1;
+        const avatar = player.foto_usuario ? `<img src="${player.foto_usuario}" alt="" style="width:28px;height:28px;border-radius:50%;margin-right:8px;object-fit:cover">` : '🏅';
+        const name = player.nome_usuario || '—';
+        const score = player.score_usuario != null ? player.score_usuario : 0;
+
+        return `
+            <div class="list-group-item leaderboard-item d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center flex-grow-1">
+                    <span class="rank-medal me-2">${rank}º</span>
+                    <div class="flex-grow-1">
+                        <div class="fw-bold">${avatar} ${name}</div>
+                        <small class="text-muted">
+                            <i class="bi bi-trophy"></i> ${score.toLocaleString()} pontos
+                        </small>
+                    </div>
+                </div>
+                <button class="btn btn-sm btn-outline-primary" onclick="viewProfile(${player.id_usuario})" title="Ver Perfil">
+                    <i class="bi bi-eye"></i>
+                </button>
+            </div>
+        `;
+    }).join('');
+}
+
+async function fetchAndRenderLeaderboard() {
+    try {
+        const res = await fetch('/API/user/');
+        if (!res.ok) {
+            console.warn('Erro ao buscar ranking:', res.status);
+            // fallback para dados estáticos
+            currentLeaderboard = null;
+            renderLeaderboard();
+            return;
+        }
+        const rows = await res.json();
+        currentLeaderboard = rows;
+        renderLeaderboardFromApi(rows);
+    } catch (err) {
+        console.error('Erro de rede ao buscar ranking:', err);
+        currentLeaderboard = null;
+        renderLeaderboard();
+    }
+}
 
 const friendsData = [
     { id: 4, name: "Ana Costa", score: 13, avatar: "🎨", lastSeen: "2h atrás" },
@@ -131,11 +173,26 @@ async function removeFriend(userId, userName) {
 /**
  * Visualiza o perfil de um jogador
  */
+let currentLeaderboard = null; // armazenará dados vindos da API
+
 function viewProfile(id) {
-    const player = leaderboardData.find(p => p.id === id);
-    if (player) {
-        showNotification(`Perfil de ${player.name} será implementado em breve!`, 'info');
+    // procurar no leaderboard atual (API)
+    if (currentLeaderboard && Array.isArray(currentLeaderboard)) {
+        const player = currentLeaderboard.find(p => p.id_usuario === id);
+        if (player) {
+            showNotification(`Perfil de ${player.nome_usuario} será implementado em breve!`, 'info');
+            return;
+        }
     }
+
+    // fallback para dados estáticos (compatibilidade)
+    const playerStatic = leaderboardData.find(p => p.rank === id || p.name === id);
+    if (playerStatic) {
+        showNotification(`Perfil de ${playerStatic.name} será implementado em breve!`, 'info');
+        return;
+    }
+
+    showNotification('Perfil não encontrado.', 'warning');
 }
 
 /**
@@ -178,7 +235,7 @@ function setupSearchDebounce() {
  * Inicializa a página
  */
 function initializePage() {
-    renderLeaderboard();
+    fetchAndRenderLeaderboard();
     renderFriendsList();
     setupSearchDebounce();
     
