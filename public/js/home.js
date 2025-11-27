@@ -29,14 +29,16 @@ function renderLeaderboardFromApi(data) {
     }).join('');
 }
 
+// Busca o ranking de jogadores pela API
 async function fetchAndRenderLeaderboard() {
+    const leaderboardEl = document.getElementById('leaderboard');
     try {
         const res = await fetch('/API/user/');
         if (!res.ok) {
             console.warn('Erro ao buscar ranking:', res.status);
-            // fallback para dados estáticos
-            currentLeaderboard = null;
-            renderLeaderboard();
+            // mostrar mensagem de erro na UI
+            if (leaderboardEl) leaderboardEl.innerHTML = '<div class="text-muted p-2">Não foi possível carregar o ranking no momento.</div>';
+            currentLeaderboard = [];
             return;
         }
         const rows = await res.json();
@@ -44,18 +46,11 @@ async function fetchAndRenderLeaderboard() {
         renderLeaderboardFromApi(rows);
     } catch (err) {
         console.error('Erro de rede ao buscar ranking:', err);
-        currentLeaderboard = null;
-        renderLeaderboard();
+        if (leaderboardEl) leaderboardEl.innerHTML = '<div class="text-muted p-2">Erro de rede ao carregar o ranking. Tente novamente.</div>';
+        currentLeaderboard = [];
     }
 }
 
-const friendsData = [
-    { id: 4, name: "Ana Costa", score: 13, avatar: "🎨", lastSeen: "2h atrás" },
-    { id: 5, name: "Carlos Souza", score: 14, avatar: "🎯", lastSeen: "5h atrás" },
-    { id: 1, name: "João Silva", score: 10, avatar: "🎮", lastSeen: "Agora" },
-    { id: 2, name: "Maria Santos", score: 11, avatar: "🌸", lastSeen: "Agora" },
-    { id: 3, name: "Pedro Oliveira", score: 12, avatar: "⚡", lastSeen: "Agora" },
-];
 
 /**
  * Renderiza o ranking de jogadores
@@ -92,29 +87,54 @@ function renderLeaderboard() {
 /**
  * Renderiza a lista de amigos
  */
-function renderFriendsList() {
+function renderFriendsList(friends = []) {
     const friendsListEl = document.getElementById('friendsList');
     if (!friendsListEl) return;
 
-    friendsListEl.innerHTML = friendsData.map(friend => {
+    friendsListEl.innerHTML = (friends || []).map(friend => {
+        const avatar = friend.foto_usuario ? `<img src="${friend.foto_usuario}" alt="" style="width:28px;height:28px;border-radius:50%;margin-right:8px;object-fit:cover">` : (friend.avatar || '👤');
         return `
             <div class="list-group-item friend-item d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center flex-grow-1">
                     <div class="flex-grow-1">
-                        <div class="fw-bold">${friend.avatar} ${friend.name}</div>
+                        <div class="fw-bold">${avatar} ${friend.nome_usuario || friend.name}</div>
                         <small class="text-muted">
-                            <i class="bi bi-trophy"></i> ${friend.score} pts
+                            <i class="bi bi-trophy"></i> ${friend.score_usuario || friend.score || 0} pts
                         </small>
                     </div>
                 </div>
                 <div class="btn-group btn-group-sm">
-                    <button class="btn btn-outline-primary" onclick="viewProfile(${friend.id})" title="Ver Perfil">
-                        <i class="bi bi-person"></i>
+                    <button class="btn btn-sm btn-outline-primary" onclick="viewProfile(${friend.id_usuario || friend.id})" title="Ver Perfil">
+                        <i class="bi bi-eye"></i>
                     </button>
                 </div>
             </div>
         `;
     }).join('');
+}
+
+/**
+ * Busca os amigos do usuário pela API e renderiza a lista
+ */
+async function fetchAndRenderFriends() {
+    const friendsListEl = document.getElementById('friendsList');
+    if (!friendsListEl) return;
+
+    try {
+        const res = await fetch('/API/user/friends', { credentials: 'same-origin' });
+        if (!res.ok) {
+            console.warn('Erro ao buscar amigos:', res.status);
+            renderFriendsList([]);
+            return;
+        }
+
+        const rows = await res.json();
+        // render directly from DB rows
+        renderFriendsList(rows || []);
+    } catch (err) {
+        console.error('Erro de rede ao buscar amigos:', err);
+        renderFriendsList([]);
+    }
 }
 
 /**
@@ -144,12 +164,31 @@ function searchUsers() {
             }
             return response.json();
         })
-        .then(data => {
+        .then(async data => {
             if (data.length === 0) {
                 searchResults.innerHTML = '<small class="text-muted d-block text-center py-2">Nenhum usuário encontrado</small>';
                 return;
             }
+            // carregar lista de amigos diretamente da API para decidir se mostramos botão
+            const friendsList = await (async () => {
+                try {
+                    const fRes = await fetch('/API/user/friends', { credentials: 'same-origin' });
+                    if (!fRes.ok) return [];
+                    return await fRes.json();
+                } catch (e) {
+                    return [];
+                }
+            })();
+
             searchResults.innerHTML = data.map(user => {
+                const isFriend = Array.isArray(friendsList) && friendsList.some(f => Number(f.id_usuario) === Number(user.id_usuario));
+                const addButton = isFriend ? '' : `
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-primary" onclick="addFriend(${user.id_usuario}, '${user.nome_usuario}')" title="Adicionar Amigo">
+                                <i class="bi bi-person-plus"></i>
+                            </button>
+                        </div>`;
+
                 return `
                     <div class="list-group-item search-result-item d-flex justify-content-between align-items-center">
                         <div class="d-flex align-items-center flex-grow-1">
@@ -157,11 +196,7 @@ function searchUsers() {
                                 <div class="fw-bold"><img src="${user.foto_usuario}" alt="${user.nome_usuario}" class="rounded-circle me-2" width="30" height="30"> ${user.nome_usuario}</div>
                             </div>
                         </div>
-                        <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-primary" onclick="addFriend(${user.id_usuario}, '${user.nome_usuario}')" title="Adicionar Amigo">
-                                <i class="bi bi-person-plus"></i>
-                            </button>
-                        </div>
+                        ${addButton}
                     </div>
                 `;
             }).join('');
@@ -177,15 +212,34 @@ function searchUsers() {
  * TODO: Integrar com API para adicionar amigo
  */
 async function addFriend(userId, userName) {
-    // TODO: Implementar chamada à API
-    // const response = await fetch('/api/friends', {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify({ userId })
-    // });
-    // const result = await response.json();
-    
-    showNotification(`Funcionalidade será implementada com a API`, 'info');
+    try {
+        const res = await fetch('/API/user/friends', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ friendId: userId })
+        });
+
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            showNotification(err.message || 'Erro ao adicionar amigo.', 'danger');
+            return;
+        }
+
+        const data = await res.json();
+        const friend = data.friend;
+
+        // Recarrega a lista de amigos da API e atualiza a busca caso esteja aberta
+        await fetchAndRenderFriends();
+        // re-executar pesquisa para atualizar botões (se houver texto de busca)
+        const searchInput = document.getElementById('searchUser');
+        if (searchInput && searchInput.value.trim().length >= 2) searchUsers();
+
+        showNotification(`${friend.nome_usuario} adicionado(a) aos seus amigos!`, 'success');
+    } catch (err) {
+        console.error('Erro ao adicionar amigo:', err);
+        showNotification('Erro de rede ao adicionar amigo.', 'danger');
+    }
 }
 
 /**
@@ -193,14 +247,28 @@ async function addFriend(userId, userName) {
  * TODO: Integrar com API para remover amigo
  */
 async function removeFriend(userId, userName) {
-    // TODO: Implementar chamada à API
-    // const response = await fetch(`/api/friends/${userId}`, {
-    //     method: 'DELETE',
-    //     headers: { 'Content-Type': 'application/json' }
-    // });
-    // const result = await response.json();
-    
-    showNotification(`Funcionalidade será implementada com a API`, 'info');
+    try {
+        const res = await fetch(`/API/user/friends/${userId}`, {
+            method: 'DELETE',
+            credentials: 'same-origin'
+        });
+
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            showNotification(err.message || 'Erro ao remover amigo.', 'danger');
+            return;
+        }
+
+        // Recarrega a lista de amigos e atualiza busca
+        await fetchAndRenderFriends();
+        const searchInput = document.getElementById('searchUser');
+        if (searchInput && searchInput.value.trim().length >= 2) searchUsers();
+
+        showNotification(`${userName} removido(a) dos seus amigos.`, 'success');
+    } catch (err) {
+        console.error('Erro ao remover amigo:', err);
+        showNotification('Erro de rede ao remover amigo.', 'danger');
+    }
 }
 
 /**
@@ -269,7 +337,7 @@ function setupSearchDebounce() {
  */
 function initializePage() {
     fetchAndRenderLeaderboard();
-    renderFriendsList();
+    fetchAndRenderFriends();
     setupSearchDebounce();
     
     console.log('✅ Página inicial carregada com sucesso!');

@@ -3,6 +3,7 @@ const { v4: uuidgen } = require('uuid');
 const db = require('../db/database');
 const ROUNDS = 10;
 
+// Ranking de usuários pela quantidade de pontos no jogo
 exports.listarUsuariosRanking = async (req, res) => {
     try {
         const [rows] = await db.query('SELECT id_usuario, nome_usuario, score_usuario FROM usuario ORDER BY score_usuario DESC LIMIT 10');
@@ -13,6 +14,7 @@ exports.listarUsuariosRanking = async (req, res) => {
     }
 };
 
+// lista usuários por nome
 exports.listarUsuariosPorNome = async (req, res) => {
     try {
         const nomeBusca = (req.query.nome || req.query.q || '').trim();
@@ -21,6 +23,20 @@ exports.listarUsuariosPorNome = async (req, res) => {
         }
 
         const param = `%${nomeBusca}%`;
+        // Se o usuário estiver autenticado, excluir ele próprio dos resultados
+        const token_usuario = req.cookies?.token_usuario;
+        if (token_usuario) {
+            const [userRows] = await db.query('SELECT id_usuario FROM usuario WHERE token_usuario = ? LIMIT 1', [token_usuario]);
+            if (userRows && userRows.length > 0) {
+                const myId = userRows[0].id_usuario;
+                const [rows] = await db.query(
+                    'SELECT id_usuario, nome_usuario, foto_usuario FROM usuario WHERE nome_usuario LIKE ? AND id_usuario <> ? LIMIT 10',
+                    [param, myId]
+                );
+                return res.status(200).json(rows);
+            }
+        }
+
         const [rows] = await db.query(
             'SELECT id_usuario, nome_usuario, foto_usuario FROM usuario WHERE nome_usuario LIKE ? LIMIT 10',
             [param]
@@ -33,6 +49,8 @@ exports.listarUsuariosPorNome = async (req, res) => {
     }
 };
 
+
+// Cria novo usuário
 exports.criarUsuario = async (req, res) => {
     try {
         const { nome_usuario, senha_usuario,foto_usuario  } = req.body;
@@ -86,6 +104,7 @@ exports.criarUsuario = async (req, res) => {
     }
 };
 
+// Atualiza nome e foto dos usuários logados
 exports.atualizarUsuario = async (req, res) => {
     try {
         // Identificar token pelo cookie
@@ -140,6 +159,8 @@ exports.atualizarUsuario = async (req, res) => {
     }
 };
 
+
+// Login de usuário
 exports.loginUsuario = async (req, res) => {
     try {
         const { nome_usuario, senha_usuario } = req.body;
@@ -190,7 +211,7 @@ exports.loginUsuario = async (req, res) => {
     }
 }
 
-// Alterar senha do próprio usuário (requere cookie token_usuario)
+// Alterar senha de usuário logado
 exports.alterarSenha = async (req, res) => {
     try {
         const token_usuario = req.cookies?.token_usuario;
@@ -225,6 +246,83 @@ exports.alterarSenha = async (req, res) => {
         return res.status(200).json({ message: 'Senha alterada com sucesso.' });
     } catch (err) {
         console.error('Erro ao alterar senha:', err);
+        return res.status(500).json({ message: 'Erro interno.' });
+    }
+};
+
+// Listar amigos do usuário logado
+exports.listarAmigos = async (req, res) => {
+    try {
+        const token_usuario = req.cookies?.token_usuario;
+        if (!token_usuario) return res.status(401).json({ message: 'Não autenticado.' });
+
+        const [rowsUser] = await db.query('SELECT id_usuario FROM usuario WHERE token_usuario = ? LIMIT 1', [token_usuario]);
+        if (!rowsUser || rowsUser.length === 0) return res.status(404).json({ message: 'Usuário não encontrado.' });
+        const userId = rowsUser[0].id_usuario;
+
+        const [rows] = await db.query(
+            `SELECT u.id_usuario, u.nome_usuario, u.foto_usuario, u.score_usuario
+             FROM Amizade a
+             JOIN usuario u ON a.fk_Usuario_id_usuario_ = u.id_usuario
+             WHERE a.fk_Usuario_id_usuario = ?`,
+            [userId]
+        );
+
+        return res.status(200).json(rows);
+    } catch (err) {
+        console.error('Erro ao listar amigos:', err);
+        return res.status(500).json({ message: 'Erro interno.' });
+    }
+};
+
+// Adicionar amigo utilizando o id
+exports.adicionarAmigo = async (req, res) => {
+    try {
+        const token_usuario = req.cookies?.token_usuario;
+        if (!token_usuario) return res.status(401).json({ message: 'Não autenticado.' });
+
+        const { friendId } = req.body;
+        if (!friendId) return res.status(400).json({ message: 'ID do amigo é obrigatório.' });
+
+        // localizar usuário atual
+        const [rowsUser] = await db.query('SELECT id_usuario FROM usuario WHERE token_usuario = ? LIMIT 1', [token_usuario]);
+        if (!rowsUser || rowsUser.length === 0) return res.status(404).json({ message: 'Usuário não encontrado.' });
+        const userId = rowsUser[0].id_usuario;
+
+
+        // checar se o friendId existe
+        const [friendRows] = await db.query('SELECT id_usuario, nome_usuario, foto_usuario, score_usuario FROM usuario WHERE id_usuario = ? LIMIT 1', [friendId]);
+        if (!friendRows || friendRows.length === 0) return res.status(404).json({ message: 'Usuário alvo não encontrado.' });
+        const friend = friendRows[0];
+
+        // Inserir relação de amizade (unidirecional)
+        await db.query('INSERT INTO Amizade (fk_Usuario_id_usuario, fk_Usuario_id_usuario_) VALUES (?, ?)', [userId, friendId]);
+
+        return res.status(201).json({ message: 'Amigo adicionado.', friend });
+    } catch (err) {
+        console.error('Erro ao adicionar amigo:', err);
+        return res.status(500).json({ message: 'Erro interno.' });
+    }
+};
+
+// Remove amigo para o usuário logado
+exports.removerAmigo = async (req, res) => {
+    try {
+        const token_usuario = req.cookies?.token_usuario;
+        if (!token_usuario) return res.status(401).json({ message: 'Não autenticado.' });
+
+        const friendId = req.params.id;
+        if (!friendId) return res.status(400).json({ message: 'ID do amigo é obrigatório.' });
+
+        const [rowsUser] = await db.query('SELECT id_usuario FROM usuario WHERE token_usuario = ? LIMIT 1', [token_usuario]);
+        if (!rowsUser || rowsUser.length === 0) return res.status(404).json({ message: 'Usuário não encontrado.' });
+        const userId = rowsUser[0].id_usuario;
+
+        const [result] = await db.query('DELETE FROM Amizade WHERE fk_Usuario_id_usuario = ? AND fk_Usuario_id_usuario_ = ? LIMIT 1', [userId, friendId]);
+
+        return res.status(200).json({ message: 'Amigo removido.' });
+    } catch (err) {
+        console.error('Erro ao remover amigo:', err);
         return res.status(500).json({ message: 'Erro interno.' });
     }
 };
