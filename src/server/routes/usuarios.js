@@ -9,6 +9,7 @@ router.put('/', controller.atualizarUsuario);
 router.put('/password/self', controller.alterarSenha);
 router.post('/login', controller.loginUsuario);
 router.get('/search', controller.listarUsuariosPorNome);
+router.get('/', controller.obterUsuarioPorId);
 
 // Rotas para gerenciamento de amigos
 router.get('/friends', controller.listarAmigos);
