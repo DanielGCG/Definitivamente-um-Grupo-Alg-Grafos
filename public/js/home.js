@@ -31,7 +31,7 @@ function renderLeaderboardFromApi(data) {
 
 async function fetchAndRenderLeaderboard() {
     try {
-        const res = await fetch('/API/user/');
+        const res = await fetch('/API/user/ranking');
         if (!res.ok) {
             console.warn('Erro ao buscar ranking:', res.status);
             // fallback para dados estáticos
@@ -95,10 +95,9 @@ function renderLeaderboard() {
 function renderFriendsList() {
     const friendsListEl = document.getElementById('friendsList');
     if (!friendsListEl) return;
-
     friendsListEl.innerHTML = friendsData.map(friend => {
         return `
-            <div class="list-group-item friend-item d-flex justify-content-between align-items-center">
+            <div class="list-group-item friend-item d-flex justify-content-between align-items-center" data-user-id="${friend.id_usuario}">
                 <div class="d-flex align-items-center flex-grow-1">
                     <div class="flex-grow-1">
                         <div class="fw-bold">${friend.avatar} ${friend.name}</div>
@@ -213,8 +212,7 @@ function viewProfile(id) {
     if (currentLeaderboard && Array.isArray(currentLeaderboard)) {
         const player = currentLeaderboard.find(p => p.id_usuario === id);
         if (player) {
-            showNotification(`Perfil de ${player.nome_usuario} será implementado em breve!`, 'info');
-            return;
+            return showProfileModal(player);
         }
     }
 
@@ -226,6 +224,72 @@ function viewProfile(id) {
     }
 
     showNotification('Perfil não encontrado.', 'warning');
+}
+
+// --- Mostrar modal de perfil  ---
+function showProfileModal(user) {
+    const overlay = document.getElementById('profileModal');
+    const contentEl = document.getElementById('profileModalContent');
+    if (!overlay || !contentEl) return;
+
+    const foto = user.foto_usuario || '/img/usuario.png';
+    const nome = user.nome_usuario || '—';
+    const score = (user.score_usuario != null) ? user.score_usuario : (user.score != null ? user.score : 0);
+    const userId = user.id_usuario ?? user.id ?? null;
+    const friendExists = !!(userId != null && document.querySelector(`#friendsList [data-user-id="${userId}"]`));
+    const actionButtons = friendExists
+        ? `<button class="btn btn-danger btn-sm" id="modalRemoveFriendBtn">Remover Amigo</button>`
+        : `<button class="btn btn-primary btn-sm" id="modalAddFriendBtn">Adicionar Amigo</button>`;
+
+    contentEl.innerHTML = `
+        <div style="display:flex;gap:12px;align-items:center">
+            <img src="${foto}" alt="${nome}" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid rgba(0,0,0,0.06)">
+            <div style="flex:1">
+                <div style="font-weight:700;font-size:1.05rem">${nome}</div>
+                <div class="text-muted" style="font-size:0.9rem;margin-top:6px"><i class="bi bi-trophy"></i> ${score.toLocaleString()} pontos</div>
+            </div>
+        </div>
+        <hr style="margin:12px 0">
+        <div>
+            <p style="margin:0 0 8px 0">ID: <strong>${user.id_usuario ?? user.id ?? '—'}</strong></p>
+            <p style="margin:0 0 8px 0">Nome: <strong>${nome}</strong></p>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
+            ${actionButtons}
+            <button class="btn btn-secondary btn-sm" id="profileModalCloseBtn">Fechar</button>
+        </div>
+    `;
+
+    overlay.classList.remove('d-none');
+    overlay.style.display = 'flex';
+
+    // fechar handlers
+    const closeBtn = document.getElementById('profileModalClose');
+    if (closeBtn) closeBtn.onclick = hideProfileModal;
+    const closeBtn2 = document.getElementById('profileModalCloseBtn');
+    if (closeBtn2) closeBtn2.onclick = hideProfileModal;
+
+    // fechar ao clicar fora do card
+    overlay.onclick = (e) => { if (e.target === overlay) hideProfileModal(); };
+
+    // ligar botões de ação do modal
+    const addBtn = document.getElementById('modalAddFriendBtn');
+    if (addBtn) addBtn.onclick = () => {
+        addFriend(userId, nome);
+        hideProfileModal();
+    };
+    const removeBtn = document.getElementById('modalRemoveFriendBtn');
+    if (removeBtn) removeBtn.onclick = () => {
+        removeFriend(userId, nome);
+        hideProfileModal();
+    };
+}
+
+function hideProfileModal() {
+    const overlay = document.getElementById('profileModal');
+    if (!overlay) return;
+    overlay.classList.add('d-none');
+    overlay.style.display = 'none';
 }
 
 /**

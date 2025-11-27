@@ -33,6 +33,21 @@ exports.listarUsuariosPorNome = async (req, res) => {
     }
 };
 
+exports.obterUsuarioPorId = async (req, res) => {
+    try {
+        const id_usuario = parseInt(req.query.id, 10);
+        if (isNaN(id_usuario)) {
+            return res.status(400).json({ message: 'Erro, ID inválido ou faltando.' });
+        }
+        const [rows] = await db.query('SELECT id_usuario, nome_usuario, foto_usuario, score_usuario FROM usuario WHERE id_usuario = ? LIMIT 1', [id_usuario]);
+
+        return res.status(200).json(rows[0]);
+    } catch (err) {
+        console.error('Erro ao obter usuário por ID:', err);
+        return res.status(500).json({ message: 'Erro no banco de dados.' });
+    }
+};
+
 exports.criarUsuario = async (req, res) => {
     try {
         const { nome_usuario, senha_usuario,foto_usuario  } = req.body;
