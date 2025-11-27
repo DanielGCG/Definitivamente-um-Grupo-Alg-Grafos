@@ -6,7 +6,7 @@ function renderLeaderboardFromApi(data) {
 
     leaderboardEl.innerHTML = (data || []).map((player, index) => {
         const rank = index + 1;
-        const avatar = player.foto_usuario ? `<img src="${player.foto_usuario}" alt="" style="width:28px;height:28px;border-radius:50%;margin-right:8px;object-fit:cover">` : '🏅';
+        const avatar = player.foto_usuario ? `<img src="${player.foto_usuario}" alt="" style="width:28px;height:28px;border-radius:50%;margin-right:8px;object-fit:cover;">` : '🏅';
         const name = player.nome_usuario || '—';
         const score = player.score_usuario != null ? player.score_usuario : 0;
 
@@ -92,7 +92,7 @@ function renderFriendsList(friends = []) {
     if (!friendsListEl) return;
 
     friendsListEl.innerHTML = (friends || []).map(friend => {
-        const avatar = friend.foto_usuario ? `<img src="${friend.foto_usuario}" alt="" style="width:28px;height:28px;border-radius:50%;margin-right:8px;object-fit:cover">` : (friend.avatar || '👤');
+        const avatar = friend.foto_usuario ? `<img src="${friend.foto_usuario}" alt="" style="width:28px;height:28px;border-radius:50%;margin-right:8px;object-fit:cover;">` : (friend.avatar || '👤');
         return `
             <div class="list-group-item friend-item d-flex justify-content-between align-items-center" data-user-id="${friend.id_usuario}">
                 <div class="d-flex align-items-center flex-grow-1">
@@ -140,7 +140,7 @@ async function fetchAndRenderFriends() {
 /**
  * Busca usuários por nome
  */
-function searchUsers() {
+async function searchUsers() {
     const searchInput = document.getElementById('searchUser');
     const searchResults = document.getElementById('searchResults');
     
@@ -156,62 +156,61 @@ function searchUsers() {
     // Exibe indicador de carregamento
     searchResults.innerHTML = '<small class="text-muted d-block text-center py-2"><i class="bi bi-hourglass-split"></i> Buscando...</small>';
 
-    // Chama a API para buscar os usuários pelo nome
-    fetch(`/API/user/search?nome=${encodeURIComponent(searchTerm)}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Erro na busca');
-            }
-            return response.json();
-        })
-        .then(async data => {
-            if (data.length === 0) {
-                searchResults.innerHTML = '<small class="text-muted d-block text-center py-2">Nenhum usuário encontrado</small>';
-                return;
-            }
-            // carregar lista de amigos diretamente da API para decidir se mostramos botão
-            const friendsList = await (async () => {
-                try {
-                    const fRes = await fetch('/API/user/friends', { credentials: 'same-origin' });
-                    if (!fRes.ok) return [];
-                    return await fRes.json();
-                } catch (e) {
-                    return [];
-                }
-            })();
+    try {
+        const res = await fetch(`/API/user/search?nome=${encodeURIComponent(searchTerm)}`);
+        if (!res.ok) {
+            throw new Error('Erro na busca');
+        }
 
-            searchResults.innerHTML = data.map(user => {
-                const isFriend = Array.isArray(friendsList) && friendsList.some(f => Number(f.id_usuario) === Number(user.id_usuario));
-                const addButton = isFriend ? '' : `
-                        <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-primary" onclick="addFriend(${user.id_usuario}, '${user.nome_usuario}')" title="Adicionar Amigo">
-                                <i class="bi bi-person-plus"></i>
-                            </button>
-                        </div>`;
+        const data = await res.json();
+        
+        if (data.length === 0) {
+            searchResults.innerHTML = '<small class="text-muted d-block text-center py-2">Nenhum usuário encontrado</small>';
+            return;
+        }
 
-                return `
-                    <div class="list-group-item search-result-item d-flex justify-content-between align-items-center">
-                        <div class="d-flex align-items-center flex-grow-1">
-                            <div class="flex-grow-1">
-                                <div class="fw-bold"><img src="${user.foto_usuario}" alt="${user.nome_usuario}" class="rounded-circle me-2" width="30" height="30"> ${user.nome_usuario}</div>
-                            </div>
+        // Carregar lista de amigos para decidir se mostramos botão
+        let friendsList = [];
+        try {
+            const friendsRes = await fetch('/API/user/friends', { credentials: 'same-origin' });
+            if (friendsRes.ok) {
+                friendsList = await friendsRes.json();
+            }
+        } catch (e) {
+            console.error('Erro ao carregar amigos:', e);
+        }
+
+        searchResults.innerHTML = data.map(user => {
+            const isFriend = Array.isArray(friendsList) && friendsList.some(f => Number(f.id_usuario) === Number(user.id_usuario));
+            const addButton = isFriend ? '' : `
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary" onclick="addFriend(${user.id_usuario})" title="Adicionar Amigo">
+                            <i class="bi bi-person-plus"></i>
+                        </button>
+                    </div>`;
+
+            return `
+                <div class="list-group-item search-result-item d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center flex-grow-1">
+                        <div class="flex-grow-1">
+                            <div class="fw-bold"><img src="${user.foto_usuario}" alt="${user.nome_usuario}" class="rounded-circle me-2" width="30" height="30" style="object-fit:cover;"> ${user.nome_usuario}</div>
                         </div>
-                        ${addButton}
                     </div>
-                `;
-            }).join('');
-        })
-        .catch(err => {
-            console.error('Erro ao buscar usuários:', err);
-            searchResults.innerHTML = '<small class="text-danger d-block text-center py-2">Erro ao buscar usuários. Tente novamente.</small>';
-        });
+                    ${addButton}
+                </div>
+            `;
+        }).join('');
+    } catch (err) {
+        console.error('Erro ao buscar usuários:', err);
+        searchResults.innerHTML = '<small class="text-danger d-block text-center py-2">Erro ao buscar usuários. Tente novamente.</small>';
+    }
 }
 
 /**
  * Adiciona um usuário como amigo
  * TODO: Integrar com API para adicionar amigo
  */
-async function addFriend(userId, userName) {
+async function addFriend(userId) {
     try {
         const res = await fetch('/API/user/friends', {
             method: 'POST',
@@ -246,7 +245,7 @@ async function addFriend(userId, userName) {
  * Remove um usuário dos amigos
  * TODO: Integrar com API para remover amigo
  */
-async function removeFriend(userId, userName) {
+async function removeFriend(userId) {
     try {
         const res = await fetch(`/API/user/friends/${userId}`, {
             method: 'DELETE',
@@ -264,7 +263,7 @@ async function removeFriend(userId, userName) {
         const searchInput = document.getElementById('searchUser');
         if (searchInput && searchInput.value.trim().length >= 2) searchUsers();
 
-        showNotification(`${userName} removido(a) dos seus amigos.`, 'success');
+        showNotification(`Usuário removido(a) dos seus amigos.`, 'success');
     } catch (err) {
         console.error('Erro ao remover amigo:', err);
         showNotification('Erro de rede ao remover amigo.', 'danger');
@@ -288,70 +287,67 @@ function viewProfile(id) {
     showNotification('Perfil não encontrado.', 'warning');
 }
 
-// --- Mostrar modal de perfil  ---
+/**
+ * Exibe o modal de perfil do usuário usando modal Bootstrap
+ */
 function showProfileModal(user) {
-    const overlay = document.getElementById('profileModal');
     const contentEl = document.getElementById('profileModalContent');
-    if (!overlay || !contentEl) return;
-
-    const foto = user.foto_usuario;
-    const nome = user.nome_usuario || '—';
-    const score = (user.score_usuario != null) ? user.score_usuario : (user.score != null ? user.score : 0);
-    const userId = user.id_usuario ?? user.id ?? null;
-    const friendExists = !!(userId != null && document.querySelector(`#friendsList [data-user-id="${userId}"]`));
-    const actionButtons = friendExists
-        ? `<button class="btn btn-danger btn-sm" id="modalRemoveFriendBtn">Remover Amigo</button>`
-        : `<button class="btn btn-primary btn-sm" id="modalAddFriendBtn">Adicionar Amigo</button>`;
+    if (!contentEl) return;
+    
+    const overlay = document.getElementById('profileModal');
+    const currentUserId = overlay ? Number(overlay.dataset.currentUser) : null;
+    const isSelf = currentUserId && Number(user.id_usuario) === currentUserId;
+    const friendExists = !!(user.id_usuario != null && document.querySelector(`#friendsList [data-user-id="${user.id_usuario}"]`));
+    
+    let actionButton = '';
+    if (!isSelf) {
+        actionButton = friendExists
+            ? `<button class="btn btn-danger" id="modalRemoveFriendBtn" data-user-id="${user.id_usuario}" data-user-name="${user.nome_usuario}"><i class="bi bi-person-dash"></i> Remover Amigo</button>`
+            : `<button class="btn btn-primary" id="modalAddFriendBtn" data-user-id="${user.id_usuario}" data-user-name="${user.nome_usuario}"><i class="bi bi-person-plus"></i> Adicionar Amigo</button>`;
+    }
 
     contentEl.innerHTML = `
-        <div style="display:flex;gap:12px;align-items:center">
-            <img src="${foto}" alt="${nome}" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid rgba(0,0,0,0.06)">
-            <div style="flex:1">
-                <div style="font-weight:700;font-size:1.05rem">${nome}</div>
-                <div class="text-muted" style="font-size:0.9rem;margin-top:6px"><i class="bi bi-trophy"></i> ${score.toLocaleString()} pontos</div>
+        <div class="d-flex align-items-center gap-3 mb-3">
+            <img src="${user.foto_usuario}" alt="${user.nome_usuario}" 
+                 class="rounded-circle" 
+                 style="width:80px;height:80px;object-fit:cover;border:3px solid var(--marrom_escuro);">
+            <div class="flex-grow-1">
+                <h5 class="mb-1 fw-bold">${user.nome_usuario}</h5>
+                <p class="text-muted mb-0">
+                    <i class="bi bi-trophy-fill text-warning"></i> 
+                    <strong>${user.score_usuario.toLocaleString()}</strong> pontos
+                </p>
             </div>
         </div>
-        <hr style="margin:12px 0">
-        <div>
-            <p style="margin:0 0 8px 0">ID: <strong>${user.id_usuario ?? user.id ?? '—'}</strong></p>
-            <p style="margin:0 0 8px 0">Nome: <strong>${nome}</strong></p>
-        </div>
-        <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
-            ${actionButtons}
-            <button class="btn btn-secondary btn-sm" id="profileModalCloseBtn">Fechar</button>
+        
+        <div class="d-flex gap-2 justify-content-end">
+            ${actionButton}
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                <i class="bi bi-x-circle"></i> Fechar
+            </button>
         </div>
     `;
 
-    overlay.classList.remove('d-none');
-    overlay.style.display = 'flex';
-
-    // fechar handlers
-    const closeBtn = document.getElementById('profileModalClose');
-    if (closeBtn) closeBtn.onclick = hideProfileModal;
-    const closeBtn2 = document.getElementById('profileModalCloseBtn');
-    if (closeBtn2) closeBtn2.onclick = hideProfileModal;
-
-    // fechar ao clicar fora do card
-    overlay.onclick = (e) => { if (e.target === overlay) hideProfileModal(); };
-
-    // ligar botões de ação do modal
+    // Ligar eventos aos botões de ação
     const addBtn = document.getElementById('modalAddFriendBtn');
-    if (addBtn) addBtn.onclick = () => {
-        addFriend(userId, nome);
-        hideProfileModal();
-    };
+    if (addBtn) {
+        addBtn.onclick = async () => {
+            await addFriend(Number(addBtn.dataset.userId));
+            bootstrap.Modal.getInstance(overlay)?.hide();
+        };
+    }
+    
     const removeBtn = document.getElementById('modalRemoveFriendBtn');
-    if (removeBtn) removeBtn.onclick = () => {
-        removeFriend(userId, nome);
-        hideProfileModal();
-    };
-}
+    if (removeBtn) {
+        removeBtn.onclick = async () => {
+            await removeFriend(Number(removeBtn.dataset.userId));
+            bootstrap.Modal.getInstance(overlay)?.hide();
+        };
+    }
 
-function hideProfileModal() {
-    const overlay = document.getElementById('profileModal');
-    if (!overlay) return;
-    overlay.classList.add('d-none');
-    overlay.style.display = 'none';
+    // Mostrar modal usando Bootstrap
+    const modal = new bootstrap.Modal(overlay);
+    modal.show();
 }
 
 /**
