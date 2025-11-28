@@ -10,10 +10,12 @@ CREATE TABLE Usuario (
 );
 
 CREATE TABLE Partida (
-    id_partida INTEGER PRIMARY KEY,
+    id_partida INTEGER AUTO_INCREMENT PRIMARY KEY,
     resultado_partida CHAR(1),
-    numRodadas_partida INTEGER,
-    score_partida INTEGER,
+    numRodadas_partida INTEGER DEFAULT 0,
+    score_partida INTEGER DEFAULT 0,
+    status_partida VARCHAR(20) DEFAULT 'em_andamento',
+    data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     fk_Usuario_id_usuario INTEGER
 );
 

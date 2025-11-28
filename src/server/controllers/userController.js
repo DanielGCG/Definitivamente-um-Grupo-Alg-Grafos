@@ -250,6 +250,29 @@ exports.alterarSenha = async (req, res) => {
     }
 };
 
+// Logout de usuário
+exports.logoutUsuario = async (req, res) => {
+    try {
+        const token_usuario = req.cookies?.token_usuario;
+        
+        if (token_usuario) {
+            // Invalidar o token do usuário no banco gerando um novo
+            const novoToken = uuidgen();
+            await db.query('UPDATE usuario SET token_usuario = ? WHERE token_usuario = ?', [novoToken, token_usuario]);
+        }
+
+        // Limpar cookie
+        res.clearCookie('token_usuario');
+        
+        return res.status(200).json({ message: 'Logout realizado com sucesso.' });
+    } catch (err) {
+        console.error('Erro ao fazer logout:', err);
+        // Mesmo com erro, limpar o cookie
+        res.clearCookie('token_usuario');
+        return res.status(500).json({ message: 'Erro interno, mas sessão foi limpa.' });
+    }
+};
+
 // Listar amigos do usuário logado
 exports.listarAmigos = async (req, res) => {
     try {

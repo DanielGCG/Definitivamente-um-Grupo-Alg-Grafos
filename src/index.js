@@ -19,10 +19,10 @@ app.set('view engine', 'ejs');
 app.use(express.static('public'));
 
 // Rota de Autenticação
-app.use('/API/registro/', require('./server/routes/auth'));
-
-// Rota de Autenticação
 app.use('/API/user/', require('./server/routes/usuarios'));
+
+// Rota de Gerenciamento da Seção de Jogo
+app.use('/API/gameSection/', require('./server/routes/gameSection'));
 
 // Rota de API
 //app.use('/api/', require('./server/routes/api'));
