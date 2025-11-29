@@ -1,0 +1,103 @@
+/* <!--Rodapé--> */
+:root{
+    --cor_neutra_0: #f5f5f5;
+    --cor_neutra_1: #a8a29e;
+    --cor_neutra_2: #171717;
+    --cor_neutra_3: #0e0c0c;
+}
+
+footer {
+  margin-top: 0px;
+  padding: 0px;
+  font-family: 'Roboto Flex', sans-serif;
+  border-radius: 6px;
+  background-image: linear-gradient(to top, #006e2a, #609462);
+  border-top: 1px solid #ddd;
+  text-align: center;
+  position: sticky;
+}
+
+footer p {
+  margin: 0;
+  color: #fff;
+  font-size: 14px;
+}
+
+footer p:hover {
+  color: #fffd9c;
+}
+
+footer p a {
+  color: #fffd9c;
+  text-decoration: none;
+}
+
+#rodape_conteudo {
+    display: grid;
+    grid-template-columns: repeat(3,1fr);
+    padding: 2rem;
+
+}
+
+#rodape_contatos{
+    align-items: center;
+    justify-content: center;
+}
+
+#rodape_desenvolvedores .rodape-lista{
+  list-style-type: none;
+}
+
+#rodape_desenvolvedores .rodape-lista .rodape-link{
+  text-decoration: none;
+  color: #fffd9c;
+}
+
+#rodape_midia_social {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+}
+
+#rodape_midia_social .rodape-link{
+    color: var(--cor_neutra_0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 2.5rem;
+    width: 2.5rem;
+    border-radius: 50%;
+    transition: all 0.4s;
+    text-decoration: none;
+}
+
+#rodape_midia_social .rodape-link:hover{
+    opacity: 0.8;
+}
+
+#instagram{
+    background: linear-gradient(#7f37c9, #ff2992, #ff9807);
+}
+
+#whatsapp{
+    background-color: #25d366;
+}
+
+#x-twitter{
+    background-color: #000000;
+}
+
+#input_grupo button{
+    background-color: #7f37c9;
+}
+
+#rodape_copyright{
+    color: var(--cor_neutra_0);
+    background-color: #000000;
+}
+
+#rodape_github{
+    background-color: #005320;
+}
+/* <!--Rodapé--> */
