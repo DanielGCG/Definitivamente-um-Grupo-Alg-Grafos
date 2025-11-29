@@ -15,7 +15,10 @@ CREATE TABLE Partida (
     numRodadas_partida INTEGER DEFAULT 0,
     score_partida INTEGER DEFAULT 0,
     status_partida VARCHAR(20) DEFAULT 'em_andamento',
-    data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    data_criacao_partida TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    verificacao_usada_partida TINYINT(1) DEFAULT 0,
+    depoimento_verificado_index_partida INTEGER DEFAULT NULL,
+    grafo_partida VARCHAR(5000),
     fk_Usuario_id_usuario INTEGER
 );
 
