@@ -16,6 +16,17 @@ body {
     background-attachment: fixed;
     color: #333;
     min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+    min-height: 100vh;
+}
+
+footer {
+    margin-top: auto;
 }
 
 h1 {
