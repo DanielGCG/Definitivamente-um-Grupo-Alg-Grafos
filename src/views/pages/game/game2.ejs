@@ -20,8 +20,8 @@
                 </div>
                 <div class="col-md-4 text-end">
                     <div class="game-stats">
-                        <div class="mb-1">
-                            <i class="bi bi-arrow-repeat"></i> Rodadas: <strong id="numRodadas">0</strong>
+                        <div class="mb-2">
+                            <i class="bi bi-heart-fill text-danger"></i> Vidas: <strong id="vidasRestantes">3</strong>
                         </div>
                         <button class="btn btn-danger btn-sm" id="btnAbandonar">
                             <i class="bi bi-door-open"></i> Abandonar Partida
@@ -33,179 +33,118 @@
     </div>
 
     <!-- Área do Jogo -->
-    <div class="container">
+    <div class="container-fluid">
         <div class="row">
-            <!-- Painel Principal: Grafo -->
-            <div class="col-lg-8">
+            <!-- Grafo (Área Principal) -->
+            <div class="col-lg-9">
                 <div class="card shadow-sm card-custom mb-4">
                     <div class="card-header text-dark" style="background-color: var(--marrom_escuro);">
-                        <h5 class="mb-0"><i class="bi bi-diagram-3"></i> Grafo da Fofoca</h5>
+                        <h5 class="mb-0">
+                            <i class="bi bi-diagram-3"></i> Grafo
+                            <small class="text-muted ms-3" style="font-size: 0.85rem;">
+                                <i class="bi bi-info-circle"></i> Clique em um nó para ver depoimento e chutar | Shift+Clique para criar arestas
+                            </small>
+                        </h5>
                     </div>
-                    <div class="card-body p-4" id="grafoArea">
-                        <div class="text-center py-5" id="grafoLoading">
-                            <div class="spinner-border text-primary mb-3" role="status">
-                                <span class="visually-hidden">Carregando...</span>
-                            </div>
-                            <p class="text-muted">Aguardando dados do grafo...</p>
+                    <div class="card-body" style="background-color: #f8f9fa;">
+                        <div id="grafoArea" style="min-height: 550px; position: relative;">
+                            <svg id="grafoSVG" class="graph-svg"></svg>
                         </div>
-                        <div id="grafoCanvas" class="d-none">
-                            <!-- O grafo será renderizado aqui -->
-                            <div class="alert alert-info">
-                                <i class="bi bi-info-circle"></i> Grafo será implementado em breve
-                            </div>
+                    </div>
+                    <div class="card-footer bg-light">
+                        <div class="d-flex gap-2 align-items-center justify-content-center">
+                            <button class="btn btn-warning" id="btnDica" disabled>
+                                <i class="bi bi-lightbulb"></i> Pedir Dica (Revela Grafo Completo - Reduz pontuação)
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Painel Lateral: Controles e Info -->
-            <div class="col-lg-4">
-                <!-- Status da Sessão -->
-                <div class="card shadow-sm card-custom mb-4">
+            <!-- Depoimentos (Painel Lateral) -->
+            <div class="col-lg-3">
+                <div class="card shadow-sm card-custom mb-4" style="position: sticky; top: 20px;">
                     <div class="card-header text-dark" style="background-color: var(--marrom_escuro);">
-                        <h5 class="mb-0"><i class="bi bi-info-circle"></i> Status da Sessão</h5>
+                        <h5 class="mb-0"><i class="bi bi-chat-dots"></i> Depoimentos</h5>
                     </div>
-                    <div class="card-body">
-                        <div id="sessionStatus">
-                            <div class="d-flex align-items-center mb-3">
-                                <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
-                                    <span class="visually-hidden">Carregando...</span>
-                                </div>
-                                <span class="text-muted">Conectando ao servidor...</span>
-                            </div>
-                        </div>
-                        <div id="sessionInfo" class="d-none">
-                            <div class="mb-3">
-                                <strong>Status:</strong>
-                                <span class="badge bg-success ms-2" id="statusBadge">Em Andamento</span>
-                            </div>
-                            <div class="mb-2">
-                                <small class="text-muted">Sessão iniciada</small>
-                            </div>
-                        </div>
+                    <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                        <div id="depoimentosList"></div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Popup para informações do nó -->
+    <div id="popup" class="hidden" style="position: absolute; background: white; border: 2px solid #333; border-radius: 8px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.25); z-index: 10000; min-width: 280px;">
+        <!-- Conteúdo será injetado dinamicamente -->
+    </div>
 </div>
 
 <!-- Scripts -->
-<script>
-let partidaAtual = null;
-let intervaloPoll = null;
-
-// Inicializa a página
-async function initGame() {
-    try {
-        // Solicita ou retorna sessão existente
-        const response = await fetch('/API/gameSection/join', {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: { 'Content-Type': 'application/json' }
-        });
-
-        if (!response.ok) {
-            throw new Error('Erro ao criar/obter sessão');
-        }
-
-        const data = await response.json();
-        partidaAtual = data;
-
-        // Carrega UI com dados da partida
-        CarregaUI(data);
-        
-        // Mostra status de sucesso
-        mostrarStatusConectado(data.isNew);
-
-        // A IMPLEMENTAR GERAÇÂO DE GRAFO
-        mostrarGrafo();
-
-    } catch (err) {
-        console.error('Erro ao inicializar jogo:', err);
-        mostrarErroConexao();
+<style>
+    #grafoArea { 
+        min-height: 550px; 
+        position: relative;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 8px;
     }
-}
-
-function CarregaUI(data) {
-    document.getElementById('partidaId').textContent = data.id_partida || 'N/A';
-    document.getElementById('scoreAtual').textContent = '0';
-    document.getElementById('numRodadas').textContent = '0';
-}
-
-function mostrarStatusConectado(isNew) {
-    const statusDiv = document.getElementById('sessionStatus');
-    const infoDiv = document.getElementById('sessionInfo');
-    
-    statusDiv.innerHTML = `
-        <div class="alert alert-success mb-0">
-            <i class="bi bi-check-circle-fill"></i>
-            ${isNew ? 'Nova partida criada!' : 'Partida retomada!'}
-        </div>
-    `;
-    
-    infoDiv.classList.remove('d-none');
-}
-
-function mostrarErroConexao() {
-    const statusDiv = document.getElementById('sessionStatus');
-    statusDiv.innerHTML = `
-        <div class="alert alert-danger mb-0">
-            <i class="bi bi-x-circle-fill"></i> Erro ao conectar
-        </div>
-        <button class="btn btn-primary btn-sm mt-2 w-100" onclick="initGame()">
-            <i class="bi bi-arrow-clockwise"></i> Tentar Novamente
-        </button>
-    `;
-}
-
-function mostrarGrafo() {
-    document.getElementById('grafoLoading').classList.add('d-none');
-    document.getElementById('grafoCanvas').classList.remove('d-none');
-}
-
-// Abandonar partida
-document.getElementById('btnAbandonar').addEventListener('click', async () => {
-    if (!confirm('Tem certeza que deseja abandonar esta partida? Todo o progresso será perdido.')) {
-        return;
+    .graph-svg { 
+        width: 100%; 
+        height: 100%; 
+        min-height: 550px;
     }
-
-    try {
-        const response = await fetch('/API/gameSection/leave', {
-            method: 'POST',
-            credentials: 'same-origin'
-        });
-
-        if (response.ok) {
-            showNotification('Partida abandonada com sucesso!', 'success');
-            setTimeout(() => {
-                window.location.href = '/';
-            }, 1500);
-        } else {
-            showNotification('Erro ao abandonar partida.', 'danger');
-        }
-    } catch (err) {
-        console.error('Erro ao abandonar partida:', err);
-        showNotification('Erro de conexão.', 'danger');
+    .graph-svg line { 
+        stroke: rgba(50, 50, 50, 0.35); 
+        stroke-width: 1.2; 
     }
-});
+    .graph-svg line.user-link {
+        stroke: #4CAF50;
+        stroke-width: 3;
+        opacity: 0.8;
+    }
+    .graph-svg circle { 
+        stroke: #fff; 
+        stroke-width: 2; 
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .graph-svg circle:hover { 
+        stroke-width: 3;
+        filter: brightness(1.1);
+    }
+    .graph-svg text { 
+        font-size: 0.75rem; 
+        font-weight: bold;
+        fill: #fff; 
+        text-anchor: middle; 
+        pointer-events: none;
+        user-select: none;
+    }
+    .hidden { 
+        display: none !important; 
+    }
+    #popup h3 {
+        font-size: 1.1rem;
+        margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    #popup .close-btn {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        line-height: 1;
+        cursor: pointer;
+        color: #999;
+    }
+    #popup .close-btn:hover {
+        color: #333;
+    }
+</style>
+<!-- D3.js para manipulação de grafo -->
+<script src="https://d3js.org/d3.v7.min.js"></script>
 
-// Notificações
-function showNotification(message, type = 'info') {
-    const toast = document.createElement('div');
-    toast.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-    toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);';
-    toast.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    document.body.appendChild(toast);
-    setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 150);
-    }, 4000);
-}
-
-// Inicializa ao carregar
-document.addEventListener('DOMContentLoaded', initGame);
-</script>
+<!-- Game2 Script -->
+<script src="/js/game2.js"></script>
