@@ -1,8 +1,57 @@
 // game2.js - Frontend game logic for "Descubra o Fofoqueiro" v2
 
 // ============================================================================
+// DADOS ESTÁTICOS PARA DESENVOLVIMENTO (Remover quando fetchs estiverem prontos)
+// ============================================================================
+// IMPORTANTE: Este mock simula a RESPOSTA DO BACKEND.
+// No jogo real, TODOS estes dados são controlados pelo servidor:
+// - score, vidas, fofoqueiro, mentiroso, depoimentos são gerados no BACKEND
+// - O frontend NUNCA sabe quem é o fofoqueiro/mentiroso (evita exploits)
+// - Toda ação (chutar, verificar, dica) é enviada ao backend para validação
+// - O backend retorna apenas o resultado (acertou/errou, mentira/verdade)
+const MOCK_GAME_DATA = {
+    id_partida: 1,
+    scoreAtual: 0,
+    vidasRestantes: 3,
+    usouDica: false,
+    usouVerificacao: false,
+    depoimentoVerificadoIndex: null,
+    depoimentoVerificadoEhMentira: null,
+    fofoqueiro: 0, // Ana é a fofoqueira (quem espalhou a fofoca)
+    mentiroso: 3,  // Diana é a mentirosa (quem deu depoimento falso) - DEVE SER DIFERENTE DO FOFOQUEIRO
+    nomes: [
+        { id: 0, nome: "Ana" },
+        { id: 1, nome: "Bruno" },
+        { id: 2, nome: "Carlos" },
+        { id: 3, nome: "Diana" },
+        { id: 4, nome: "Eduardo" }
+    ],
+    depoimentos: [
+        "Ana disse: Eduardo me contou a fofoca.", // MENTIRA - Ana é a fofoqueira
+        "Bruno disse: Ana me contou a fofoca.",
+        "Carlos disse: Bruno me contou a fofoca.",
+        "Diana disse: Bruno me contou a fofoca.", // MENTIRA - Diana é a mentirosa
+        "Eduardo disse: Carlos me contou a fofoca."
+    ],
+    depoimentosMentira: [true, false, false, true, false], // índice 0 (Ana) e 3 (Diana) são mentira
+    grafo: null, // null = grafo oculto, será preenchido ao usar dica
+    grafoCompleto: {
+        edges: [
+            { source: 0, target: 1 }, // Ana -> Bruno
+            { source: 1, target: 2 }, // Bruno -> Carlos
+            { source: 2, target: 4 }, // Carlos -> Eduardo
+            { source: 0, target: 3 }, // Ana -> Diana
+            { source: 4, target: 1 }  // Eduardo -> Bruno
+        ]
+    }
+};
+
+// ============================================================================
 // ESTADO DO JOGO - Gerenciado por um objeto centralizado
 // ============================================================================
+// IMPORTANTE: Este estado é apenas um CACHE LOCAL dos dados recebidos do backend.
+// O estado real do jogo (fofoqueiro, mentiroso, vidas, score) está NO SERVIDOR.
+// Isso previne que jogadores modifiquem o JavaScript para trapacear.
 const GameState = {
     partidaAtual: null,
     depoimentosVerificados: new Set(),
@@ -158,6 +207,10 @@ async function initGame() {
 }
 
 async function fetchGameSession() {
+    // ============================================================
+    // [API] - DESCOMENTAR ESTE BLOCO QUANDO A API ESTIVER PRONTA
+    // ============================================================
+    /*
     const response = await fetch('/API/gameSection/join', {
         method: 'POST',
         credentials: 'same-origin',
@@ -169,6 +222,12 @@ async function fetchGameSession() {
     }
 
     return await response.json();
+    */
+    
+    // ============================================================
+    // [MOCK] - APAGAR ESTA LINHA QUANDO A API ESTIVER PRONTA
+    // ============================================================
+    return Promise.resolve(JSON.parse(JSON.stringify(MOCK_GAME_DATA)));
 }
 
 function updateUI(data) {
@@ -579,47 +638,88 @@ function closePopup() {
 // ============================================================================
 // AÇÕES DO JOGO: CHUTAR, VERIFICAR, DICA
 // ============================================================================
+// IMPORTANTE: Todas as ações são validadas NO BACKEND para evitar exploits:
+// 1. Frontend envia a ação (ex: chutar ID 3)
+// 2. Backend valida se o chute está correto (compara com fofoqueiro armazenado no servidor)
+// 3. Backend atualiza vidas/score no banco de dados
+// 4. Backend retorna apenas o resultado (acertou: true/false, novas vidas, novo score)
+// 5. Frontend atualiza a UI com os dados recebidos
+//
+// O frontend NUNCA sabe antecipadamente quem é o fofoqueiro/mentiroso!
 async function chutar(nodeId) {
     closePopup();
 
     try {
+        // ============================================================
+        // [API] - DESCOMENTAR ESTE BLOCO QUANDO A API ESTIVER PRONTA
+        // ============================================================
+        /*
         const result = await fetchAPI('/API/gameLogic/chute', { chuteId: parseInt(nodeId) });
+        */
+        
+        // ============================================================
+        // [MOCK] - APAGAR TODO ESTE BLOCO QUANDO A API ESTIVER PRONTA
+        // ============================================================
+        const partida = GameState.getPartida();
+        const acertou = nodeId === partida.fofoqueiro;
+        
+        let result;
+        if (acertou) {
+            const pontos = partida.usouDica ? 1 : 2;
+            result = {
+                success: true,
+                acertou: true,
+                message: `🎉 Parabéns! Você acertou o fofoqueiro! +${pontos} pontos`,
+                nextRound: false,
+                scoreTotal: partida.scoreAtual + pontos
+            };
+            partida.scoreAtual += pontos;
+        } else {
+            partida.vidasRestantes--;
+            if (partida.vidasRestantes <= 0) {
+                result = {
+                    success: true,
+                    acertou: false,
+                    gameOver: true,
+                    message: '💀 Você perdeu todas as vidas.',
+                    vidasRestantes: 0
+                };
+            } else {
+                const nomeCerto = partida.nomes.find(n => n.id === partida.fofoqueiro)?.nome;
+                result = {
+                    success: true,
+                    acertou: false,
+                    gameOver: false,
+                    message: `Errou! Você perdeu uma vida. (Dica: não era ${partida.nomes.find(n => n.id === nodeId)?.nome})`,
+                    vidasRestantes: partida.vidasRestantes
+                };
+            }
+        }
+        // ============================================================
+        // [MOCK] - FIM DO BLOCO MOCK
+        // ============================================================
 
         if (result.acertou) {
-            // Se o servidor iniciou uma nova rodada, atualizar o estado da UI em vez de redirecionar
             if (result.nextRound) {
                 showNotification(result.message || 'Acertou! Iniciando próxima rodada...', 'success');
-
-                // Atualizar estado da partida local com os dados retornados
-                const partida = GameState.getPartida() || {};
-                partida.nomes = result.nomes || partida.nomes;
-                partida.depoimentos = result.depoimentos || partida.depoimentos;
-                partida.vidasRestantes = typeof result.vidasRestantes !== 'undefined' ? result.vidasRestantes : partida.vidasRestantes;
-                partida.scoreAtual = typeof result.scoreTotal !== 'undefined' ? result.scoreTotal : partida.scoreAtual;
-                partida.grafo = result.usouDica ? { nodes: result.nomes, edges: result.grafo && result.grafo.edges ? result.grafo.edges : [] } : null;
-
-                GameState.setPartida(partida);
-
-                // Reset frontend verification state for the new round
-                GameState.reset();
-                GameState.setPartida(partida);
-
-                // Re-render UI
-                updateHeader(partida);
-                renderDepoimentos(partida.depoimentos || []);
-                renderGraph(partida);
-
-                // Re-enable dica button
-                const btnDica = document.getElementById('btnDica');
-                if (btnDica) btnDica.disabled = false;
-
+                // Atualizar estado conforme necessário
             } else {
                 showNotification(result.message, 'success');
-                setTimeout(() => window.location.href = '/', 2000);
+                updateHeader(partida);
+                setTimeout(() => {
+                    if (confirm('Você venceu! Deseja jogar novamente?')) {
+                        location.reload();
+                    }
+                }, 2000);
             }
         } else if (result.gameOver) {
             showNotification(result.message, 'danger');
-            setTimeout(() => window.location.href = '/', 2000);
+            updateHeader(partida);
+            setTimeout(() => {
+                if (confirm('Game Over! Deseja tentar novamente?')) {
+                    location.reload();
+                }
+            }, 2000);
         } else {
             showNotification(result.message, 'warning');
             document.getElementById('vidasRestantes').textContent = result.vidasRestantes;
@@ -634,7 +734,39 @@ async function verificarDepoimento(index) {
     closePopup();
 
     try {
+        // ============================================================
+        // [API] - DESCOMENTAR ESTE BLOCO QUANDO A API ESTIVER PRONTA
+        // ============================================================
+        /*
         const result = await fetchAPI('/API/gameLogic/verificarDepoimento', { depoimentoIndex: index });
+        */
+        
+        // ============================================================
+        // [MOCK] - APAGAR TODO ESTE BLOCO QUANDO A API ESTIVER PRONTA
+        // ============================================================
+        // NOTA: Este código mock simula o que o BACKEND faria:
+        // - Verifica se o depoimento é mentira (dados armazenados no servidor)
+        // - Marca que a verificação foi usada (salva no banco de dados)
+        // - Retorna apenas se é MENTIRA ou VERDADE
+        // O frontend recebe apenas o resultado, não tem acesso à lista completa.
+        const partida = GameState.getPartida();
+        
+        if (GameState.isVerificacaoUsada()) {
+            showNotification('Você já usou a verificação nesta partida!', 'warning');
+            return;
+        }
+        
+        const ehMentira = partida.depoimentosMentira[index];
+        const result = {
+            success: true,
+            ehMentira: ehMentira,
+            message: ehMentira 
+                ? '🔴 Este depoimento é MENTIRA!' 
+                : '✅ Este depoimento é VERDADE!'
+        };
+        // ============================================================
+        // [MOCK] - FIM DO BLOCO MOCK
+        // ============================================================
 
         if (result.success) {
             // Marcar que a verificação foi usada nesta partida (apenas uma por partida)
@@ -661,11 +793,44 @@ async function solicitarDica() {
     }
 
     try {
+        // ============================================================
+        // [API] - DESCOMENTAR ESTE BLOCO QUANDO A API ESTIVER PRONTA
+        // ============================================================
+        /*
         const result = await fetchAPI('/API/gameLogic/dica', {});
+        */
+        
+        // ============================================================
+        // [MOCK] - APAGAR TODO ESTE BLOCO QUANDO A API ESTIVER PRONTA
+        // ============================================================
+        // NOTA: Este código mock simula o que o BACKEND faria:
+        // - Verifica se a dica já foi usada (consulta no banco de dados)
+        // - Marca que foi usada e reduz pontuação futura (salva no servidor)
+        // - Retorna o grafo completo de fofocas
+        // No backend real, o grafo já está gerado e armazenado.
+        const partidaAtual = GameState.getPartida();
+        // - Verifica se a dica já foi usada (consulta no banco de dados)
+        // - Marca que foi usada e reduz pontuação futura (salva no servidor)
+        // - Retorna o grafo completo de fofocas
+        // No backend real, o grafo já está gerado e armazenado.
+        const partidaAtual = GameState.getPartida();
+        
+        if (partidaAtual.usouDica) {
+            showNotification('Você já usou a dica nesta partida!', 'warning');
+            return;
+        }
+        
+        const result = {
+            success: true,
+            message: '💡 Dica ativada! Agora você pode ver o grafo de fofocas.',
+            grafo: partidaAtual.grafoCompleto
+        };
+        // ============================================================
+        // [MOCK] - FIM DO BLOCO MOCK
+        // ============================================================
 
         if (result.success) {
             showNotification(result.message, 'info');
-            const partidaAtual = GameState.getPartida();
             partidaAtual.grafo = result.grafo;
             partidaAtual.usouDica = true;
             renderGraph(partidaAtual);
