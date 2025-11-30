@@ -808,7 +808,6 @@ async function solicitarDica() {
         // - Marca que foi usada e reduz pontuação futura (salva no servidor)
         // - Retorna o grafo completo de fofocas
         // No backend real, o grafo já está gerado e armazenado.
-        const partidaAtual = GameState.getPartida();
         // - Verifica se a dica já foi usada (consulta no banco de dados)
         // - Marca que foi usada e reduz pontuação futura (salva no servidor)
         // - Retorna o grafo completo de fofocas
