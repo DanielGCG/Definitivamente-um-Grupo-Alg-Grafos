@@ -20,6 +20,7 @@ router.get('/play', checkAuthStatus, (req, res) => {
     res.render('pages/game/game', { locals: locals });
 });
 
+
 router.get('/how-to-play', checkAuthStatus, (req, res) => {
     const locals = {
         title: "Jogo da Fofoca",

@@ -1,317 +1,241 @@
-// game2.js - Frontend game logic for "Descubra o Fofoqueiro" v2
+// Modularized game logic and GUI glue for "Descubra o Fofoqueiro"
+// Exposes iniciarJogo(), chutar(id), marcarVertice(id), fecharPopup()
+(function () {
+  // Estado do jogo (encapsulado)
+  let vidas = 3;
+  let pontos = 0;
+  let tamanhoInicial = 8;
+  let nivelAtual = 8;
+  let popupAmigoAtual = null;
+  let svgElement = null;
+  let verticesMarcados = new Set();
+  let arestasMarcadas = new Set();
+  let currentNodes = [];
+  let currentLinks = [];
+  let linkElements = null;
+  let nodeElements = null;
+  let fofoqueiro = null;
+  let dicaTextoUsada = false;
+  let dicaGrafoUsada = false;
+  let dicaDistanciaUsada = false;
+  let simulation = null;
+  let modoAtual = 'criar'; // 'criar' ou 'marcar'
+  let arestasUsuario = new Set(); // arestas criadas pelo usuário
 
-// ============================================================================
-// DADOS ESTÁTICOS PARA DESENVOLVIMENTO (Remover quando fetchs estiverem prontos)
-// ============================================================================
-// IMPORTANTE: Este mock simula a RESPOSTA DO BACKEND.
-// No jogo real, TODOS estes dados são controlados pelo servidor:
-// - score, vidas, fofoqueiro, mentiroso, depoimentos são gerados no BACKEND
-// - O frontend NUNCA sabe quem é o fofoqueiro/mentiroso (evita exploits)
-// - Toda ação (chutar, verificar, dica) é enviada ao backend para validação
-// - O backend retorna apenas o resultado (acertou/errou, mentira/verdade)
-const MOCK_GAME_DATA = {
-    id_partida: 1,
-    scoreAtual: 0,
-    vidasRestantes: 3,
-    usouDica: false,
-    usouVerificacao: false,
-    depoimentoVerificadoIndex: null,
-    depoimentoVerificadoEhMentira: null,
-    fofoqueiro: 0, // Ana é a fofoqueira (quem espalhou a fofoca)
-    mentiroso: 3,  // Diana é a mentirosa (quem deu depoimento falso) - DEVE SER DIFERENTE DO FOFOQUEIRO
-    nomes: [
-        { id: 0, nome: "Ana" },
-        { id: 1, nome: "Bruno" },
-        { id: 2, nome: "Carlos" },
-        { id: 3, nome: "Diana" },
-        { id: 4, nome: "Eduardo" }
-    ],
-    depoimentos: [
-        "Ana disse: Eduardo me contou a fofoca.", // MENTIRA - Ana é a fofoqueira
-        "Bruno disse: Ana me contou a fofoca.",
-        "Carlos disse: Bruno me contou a fofoca.",
-        "Diana disse: Bruno me contou a fofoca.", // MENTIRA - Diana é a mentirosa
-        "Eduardo disse: Carlos me contou a fofoca."
-    ],
-    depoimentosMentira: [true, false, false, true, false], // índice 0 (Ana) e 3 (Diana) são mentira
-    grafo: null, // null = grafo oculto, será preenchido ao usar dica
-    grafoCompleto: {
-        edges: [
-            { source: 0, target: 1 }, // Ana -> Bruno
-            { source: 1, target: 2 }, // Bruno -> Carlos
-            { source: 2, target: 4 }, // Carlos -> Eduardo
-            { source: 0, target: 3 }, // Ana -> Diana
-            { source: 4, target: 1 }  // Eduardo -> Bruno
-        ]
+  // Utilitários
+  function atualizarPosicaoPopup() {
+    if (popupAmigoAtual && svgElement) {
+      const popup = document.getElementById('popup');
+      if (!popup.classList.contains('hidden')) {
+        const svgRect = svgElement.getBoundingClientRect();
+        const x = svgRect.left + (popupAmigoAtual.x || 0);
+        const y = svgRect.top + (popupAmigoAtual.y || 0);
+        popup.style.left = (x + 20) + 'px';
+        popup.style.top = (y - 10) + 'px';
+      }
     }
-};
+  }
 
-// ============================================================================
-// ESTADO DO JOGO - Gerenciado por um objeto centralizado
-// ============================================================================
-// IMPORTANTE: Este estado é apenas um CACHE LOCAL dos dados recebidos do backend.
-// O estado real do jogo (fofoqueiro, mentiroso, vidas, score) está NO SERVIDOR.
-// Isso previne que jogadores modifiquem o JavaScript para trapacear.
-const GameState = {
-    partidaAtual: null,
-    depoimentosVerificados: new Set(),
-    verificacaoUsada: false,
-    depoimentosResultado: new Map(), // index -> boolean (ehMentira)
-    
-    reset() {
-        this.depoimentosVerificados.clear();
-        this.verificacaoUsada = false;
-        this.depoimentosResultado.clear();
-    },
-    
-    setPartida(data) {
-        this.partidaAtual = data;
-    },
-    
-    getPartida() {
-        return this.partidaAtual;
-    },
-    
-    marcarDepoimentoVerificado(index) {
-        this.depoimentosVerificados.add(index);
-    },
-    
-    isDepoimentoVerificado(index) {
-        return this.depoimentosVerificados.has(index);
-    },
+  function fecharPopup() {
+    document.getElementById('popup').classList.add('hidden');
+    popupAmigoAtual = null;
+  }
 
-    setVerificacaoUsada(flag) {
-        if (typeof flag === 'undefined') flag = true;
-        this.verificacaoUsada = !!flag;
-    },
-
-    isVerificacaoUsada() {
-        return !!this.verificacaoUsada;
-    },
-
-    marcarResultadoDepoimento(index, ehMentira) {
-        this.depoimentosResultado.set(index, !!ehMentira);
-    },
-
-    getResultadoDepoimento(index) {
-        return this.depoimentosResultado.has(index) ? this.depoimentosResultado.get(index) : null;
+  function atualizarMarcacoes() {
+    if (nodeElements) {
+      nodeElements.classed('marked', d => verticesMarcados.has(d.id));
     }
-};
-
-// ============================================================================
-// ESTADO DO GRAFO - Gerencia nós, arestas e marcações
-// ============================================================================
-const GraphState = {
-    verticesMarcados: new Set(),
-    arestasUsuario: new Set(),
-    currentNodes: [],
-    currentLinks: [],
-    svgElements: {
-        nodeElements: null,
-        linkElements: null,
-        userLinkElements: null
-    },
-    
-    reset() {
-        this.verticesMarcados.clear();
-        this.arestasUsuario.clear();
-        this.currentNodes = [];
-        this.currentLinks = [];
-    },
-    
-    setNodes(nodes) {
-        this.currentNodes = nodes;
-    },
-    
-    setLinks(links) {
-        this.currentLinks = links;
-    },
-    
-    toggleVerticeMarcar(id) {
-        if (this.verticesMarcados.has(id)) {
-            this.verticesMarcados.delete(id);
-            this.removerArestasDoVertice(id);
-            return false;
-        } else {
-            this.verticesMarcados.add(id);
-            return true;
-        }
-    },
-    
-    removerArestasDoVertice(id) {
-        Array.from(this.arestasUsuario).forEach(aresta => {
-            const [source, target] = aresta.split('-').map(Number);
-            if (source === id || target === id) {
-                this.arestasUsuario.delete(aresta);
-            }
-        });
-    },
-    
-    adicionarAresta(source, target) {
-        const arestaKey = `${source}-${target}`;
-        const arestaInversa = `${target}-${source}`;
-        
-        if (this.arestasUsuario.has(arestaKey)) {
-            this.arestasUsuario.delete(arestaKey);
-            return false;
-        } else if (this.arestasUsuario.has(arestaInversa)) {
-            this.arestasUsuario.delete(arestaInversa);
-            return false;
-        } else {
-            this.arestasUsuario.add(arestaKey);
-            return true;
-        }
-    },
-    
-    getArestasArray() {
-        return Array.from(this.arestasUsuario).map(aresta => {
-            const [source, target] = aresta.split('-').map(Number);
-            return { source, target };
-        });
+    if (linkElements && currentLinks) {
+      linkElements.classed('marked', d => {
+        const sourceId = typeof d.source === 'object' ? d.source.id : d.source;
+        const targetId = typeof d.target === 'object' ? d.target.id : d.target;
+        const arestaKey = sourceId < targetId ? `${sourceId}-${targetId}` : `${targetId}-${sourceId}`;
+        return arestasMarcadas.has(arestaKey);
+      });
     }
-};
+  }
 
-// ============================================================================
-// INICIALIZAÇÃO E CARREGAMENTO
-// ============================================================================
-async function initGame() {
-    try {
-        const data = await fetchGameSession();
+  function criarArestaUsuario(id) {
+    if (verticesMarcados.has(id)) {
+      // Se já está marcado, desmarcar e remover arestas criadas associadas
+      verticesMarcados.delete(id);
+      Array.from(arestasUsuario).forEach(aresta => {
+        const [a, b] = aresta.split('-').map(Number);
+        if (a === id || b === id) arestasUsuario.delete(aresta);
+      });
+    } else {
+      // Se já existe 1 vértice marcado, criar aresta e limpar seleção
+      if (verticesMarcados.size === 1) {
+        const verticesMarcadosArray = Array.from(verticesMarcados);
+        const primeiroMarcado = verticesMarcadosArray[0];
         
-        GameState.reset();
-        GameState.setPartida(data);
-        // Recebe se já foi usada a verificação nesta partida e qual índice foi verificado (se houver)
-        if (typeof data.usouVerificacao !== 'undefined') {
-            GameState.setVerificacaoUsada(!!data.usouVerificacao);
-        }
-        if (typeof data.depoimentoVerificadoIndex !== 'undefined' && data.depoimentoVerificadoIndex !== null) {
-            const idx = data.depoimentoVerificadoIndex;
-            GameState.marcarDepoimentoVerificado(idx);
-            // Armazenar resultado se vindo do servidor
-            if (typeof data.depoimentoVerificadoEhMentira !== 'undefined' && data.depoimentoVerificadoEhMentira !== null) {
-                GameState.marcarResultadoDepoimento(idx, !!data.depoimentoVerificadoEhMentira);
-            }
-            GameState.setVerificacaoUsada(true);
-        }
+  // Criar aresta dirigida entre primeiroMarcado -> id (preservar direção)
+  const arestaKey = `${primeiroMarcado}-${id}`;
+        arestasUsuario.add(arestaKey);
         
-        updateUI(data);
-        configurarEventListeners();
-        
-        if (!data.usouDica) {
-            document.getElementById('btnDica').disabled = false;
-        }
-    } catch (err) {
-        console.error('Erro ao inicializar jogo:', err);
-        showNotification('Erro ao conectar com o servidor.', 'danger');
+        // Limpar seleção após criar a aresta
+        verticesMarcados.clear();
+      } else {
+        // Se nenhum ou mais de 1 vértice marcado, apenas marcar este
+        verticesMarcados.add(id);
+      }
     }
-}
+    atualizarVisualizacaoArestasUsuario();
+  }
 
-async function fetchGameSession() {
-    // ============================================================
-    // [API] - DESCOMENTAR ESTE BLOCO QUANDO A API ESTIVER PRONTA
-    // ============================================================
-    /*
-    const response = await fetch('/API/gameSection/join', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' }
+  function atualizarVisualizacaoArestasUsuario() {
+    // Atualizar vértices marcados
+    if (nodeElements) {
+      nodeElements.classed('marked', d => verticesMarcados.has(d.id));
+    }
+    
+    // Usar marker SVG nativo para setas direcionadas
+    const svg = d3.select('#grafo');
+
+    // Garantir que exista
+    if (svg.select('defs').empty()) svg.append('defs');
+    const marker = svg.select('defs').selectAll('marker#arrowhead-user').data([0]).join('marker')
+      .attr('id', 'arrowhead-user')
+      .attr('viewBox', '0 0 8 8')
+      .attr('refX', 8)
+      .attr('refY', 4)
+      .attr('markerWidth', 6)
+      .attr('markerHeight', 6)
+      .attr('orient', 'auto')
+      .attr('markerUnits', 'strokeWidth');
+
+    // triângulo (seta) reduzido
+    marker.selectAll('path').data([0]).join('path')
+      .attr('d', 'M 0 0 L 8 4 L 0 8 z')
+      .attr('fill', '#4CAF50');
+
+    // Remover linhas antigas e redesenhar com marker-end
+    svg.selectAll('line.user-link').remove();
+
+    const arestasArray = Array.from(arestasUsuario).map(aresta => {
+      const [source, target] = aresta.split('-').map(Number);
+      return { source, target };
     });
 
-    if (!response.ok) {
-        throw new Error('Erro ao criar/obter sessão');
-    }
+    const g = svg.select('g');
 
-    return await response.json();
-    */
-    
-    // ============================================================
-    // [MOCK] - APAGAR ESTA LINHA QUANDO A API ESTIVER PRONTA
-    // ============================================================
-    return Promise.resolve(JSON.parse(JSON.stringify(MOCK_GAME_DATA)));
-}
+    g.selectAll('line.user-link')
+      .data(arestasArray)
+      .join('line')
+      .attr('class', 'link user-link marked')
+      .attr('stroke', '#4CAF50')
+      .attr('stroke-width', 2)
+      .attr('marker-end', 'url(#arrowhead-user)')
+      .attr('x1', d => {
+        const source = currentNodes[d.source];
+        const target = currentNodes[d.target];
+        const dx = target.x - source.x;
+        const dy = target.y - source.y;
+        const len = Math.sqrt(dx*dx + dy*dy) || 1;
+        const ux = dx / len;
+        const uy = dy / len;
+        const nodeRadius = 18;
+        const offsetStart = nodeRadius;
+        return source.x + ux * offsetStart;
+      })
+      .attr('y1', d => {
+        const source = currentNodes[d.source];
+        const target = currentNodes[d.target];
+        const dx = target.x - source.x;
+        const dy = target.y - source.y;
+        const len = Math.sqrt(dx*dx + dy*dy) || 1;
+        const ux = dx / len;
+        const uy = dy / len;
+        const nodeRadius = 18;
+        const offsetStart = nodeRadius;
+        return source.y + uy * offsetStart;
+      })
+      .attr('x2', d => {
+        const source = currentNodes[d.source];
+        const target = currentNodes[d.target];
+        const dx = target.x - source.x;
+        const dy = target.y - source.y;
+        const len = Math.sqrt(dx*dx + dy*dy) || 1;
+        const ux = dx / len;
+        const uy = dy / len;
+        const nodeRadius = 18;
+        const offsetEnd = nodeRadius + 2;
+        return target.x - ux * offsetEnd;
+      })
+      .attr('y2', d => {
+        const source = currentNodes[d.source];
+        const target = currentNodes[d.target];
+        const dx = target.x - source.x;
+        const dy = target.y - source.y;
+        const len = Math.sqrt(dx*dx + dy*dy) || 1;
+        const ux = dx / len;
+        const uy = dy / len;
+        const nodeRadius = 18;
+        const offsetEnd = nodeRadius + 2;
+        return target.y - uy * offsetEnd;
+      });
+  }
 
-function updateUI(data) {
-    updateHeader(data);
-    renderDepoimentos(data.depoimentos || []);
-    renderGraph(data);
-}
-
-function updateHeader(data) {
-    document.getElementById('partidaId').textContent = data.id_partida || 'N/A';
-    document.getElementById('scoreAtual').textContent = data.scoreAtual || '0';
-    document.getElementById('vidasRestantes').textContent = data.vidasRestantes || '3';
-}
-
-// ============================================================================
-// RENDERIZAÇÃO DE DEPOIMENTOS
-// ============================================================================
-function renderDepoimentos(depoimentos) {
-    const container = document.getElementById('depoimentosList');
-    
-    if (!depoimentos || depoimentos.length === 0) {
-        container.innerHTML = '<p class="text-muted">Nenhum depoimento disponível.</p>';
-        return;
-    }
-
-    container.innerHTML = '';
-    depoimentos.forEach((dep, index) => {
-        const card = createDepoimentoCard(dep, index, GameState.isDepoimentoVerificado(index));
-        container.appendChild(card);
-
-        // Anexar listener ao botão de verificação dentro do card, se existir e se a verificação ainda não foi usada
-        const btn = card.querySelector(`#btnVerificarDepoimento-${index}`);
-        if (btn && !GameState.isVerificacaoUsada()) {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation(); // evitar que abra popup
-                verificarDepoimento(index);
-            });
+  function marcarVertice(id) {
+    if (verticesMarcados.has(id)) {
+      verticesMarcados.delete(id);
+      // remover arestas associadas
+      Array.from(arestasMarcadas).forEach(aresta => {
+        const [a, b] = aresta.split('-').map(Number);
+        if (a === id || b === id) arestasMarcadas.delete(aresta);
+      });
+    } else {
+      // Se já existe 1 vértice marcado, marcar aresta e limpar seleção
+      if (verticesMarcados.size === 1 && currentLinks) {
+        const verticesMarcadosArray = Array.from(verticesMarcados);
+        const primeiroMarcado = verticesMarcadosArray[0];
+        const existeAresta = currentLinks.some(l => {
+          const sourceId = typeof l.source === 'object' ? l.source.id : l.source;
+          const targetId = typeof l.target === 'object' ? l.target.id : l.target;
+          return (sourceId === primeiroMarcado && targetId === id) || (sourceId === id && targetId === primeiroMarcado);
+        });
+        if (existeAresta) {
+          const arestaKey = primeiroMarcado < id ? `${primeiroMarcado}-${id}` : `${id}-${primeiroMarcado}`;
+          arestasMarcadas.add(arestaKey);
         }
-    });
-}
-
-function createDepoimentoCard(depoimento, index, isVerificado) {
-    const card = document.createElement('div');
-    card.className = 'card mb-2';
-    // Mostrar resultado, se houver
-    const resultado = GameState.getResultadoDepoimento(index); // true = mentira, false = verdade, null = não verificado
-    let badgeHtml = '';
-    let textClass = '';
-    if (resultado === true) {
-        badgeHtml = '<span class="badge bg-danger ms-2">MENTIRA</span>';
-        textClass = 'text-danger';
-    } else if (resultado === false) {
-        badgeHtml = '<span class="badge bg-success ms-2">VERDADE</span>';
-        textClass = 'text-success';
+        // Limpar seleção após marcar a aresta
+        verticesMarcados.clear();
+      } else {
+        // Se nenhum ou mais de 1 vértice marcado, apenas marcar este
+        verticesMarcados.add(id);
+      }
     }
+    atualizarMarcacoes();
+  }
 
-    // Se não verificado e a verificação ainda não foi usada, adicionar botão de verificação inline
-    const shouldShowVerify = !isVerificado && !GameState.isVerificacaoUsada();
-    const verificarButtonHtml = shouldShowVerify ? `
-        <button id="btnVerificarDepoimento-${index}" class="btn btn-sm btn-outline-secondary float-end">
-            <i class="bi bi-search"></i> Verificar
-        </button>
-    ` : '';
+  // Função para gerar lista de versões
+  function montarHtmlVersoes(nodes) {
+    return nodes.map(d => `
+      <div class="pessoa-item" data-id="${d.id}">
+        <b>${d.nome}</b> ouviu de <i>${d.ouviuDeFalso || 'não ouviu nada'}</i>
+        <span style="float: right; color: #ff4081;">Chutar</span>
+      </div>
+    `).join('');
+  }
 
-    card.innerHTML = `
-        <div class="card-body py-2 d-flex align-items-start justify-content-between">
-            <div class="flex-grow-1">
-                <p class="mb-0 ${textClass}">
-                    <i class="bi bi-chat-quote"></i> ${depoimento}
-                    ${badgeHtml}
-                </p>
-            </div>
-            <div class="ms-2">${verificarButtonHtml}</div>
-        </div>
-    `;
-    
-    return card;
-}
+  // Função principal que inicializa o jogo; pode ser chamada externamente
+  function iniciarJogo(numNomes = nivelAtual) {
+    // reset UI
+    document.getElementById('infoBox').classList.add('hidden');
+    document.getElementById('grafo').classList.add('hidden');
+    document.getElementById('gameContainer').classList.add('hidden');
+    fecharPopup();
+    verticesMarcados.clear();
+    arestasMarcadas.clear();
+    arestasUsuario.clear();
+    modoAtual = 'criar';
+    dicaTextoUsada = true;
+    dicaGrafoUsada = false;
+    dicaDistanciaUsada = false;
+    document.getElementById('btnDica1').disabled = false;
+    document.getElementById('btnDica2').disabled = true;
 
-// ============================================================================
-// RENDERIZAÇÃO DO GRAFO
-// ============================================================================
-function renderGraph(data) {
-    const svg = d3.select('#grafoSVG');
+    const svg = d3.select('#grafo');
     svg.selectAll('*').remove();
 
     const dimensions = calculateGraphDimensions(svg);
@@ -430,513 +354,418 @@ function renderNodes(g, nodes) {
         .attr('fill', '#fff')
         .attr('pointer-events', 'none');
 
-    // Garantir que marcas visuais estejam corretas após renderizar nós
-    updateNodeMarkers();
-}
-
-function handleNodeClick(event, node) {
-    if (event.shiftKey) {
-        handleShiftClick(node.id);
-    } else {
-        showPopup(node, event);
-    }
-}
-
-// ============================================================================
-// ATUALIZAÇÃO DE POSIÇÕES E INTERAÇÃO COM GRAFO
-// ============================================================================
-function updateGraphPositions() {
-    updateRealLinks();
-    updateUserLinks();
-    updateNodePositions();
-}
-
-function updateRealLinks() {
-    const nodeRadius = 20;
-    const linkElements = GraphState.svgElements.linkElements;
-    
-    if (!linkElements) return;
-    
-    linkElements
-        .attr('x1', d => calculateLinkStart(d, 'x', nodeRadius))
-        .attr('y1', d => calculateLinkStart(d, 'y', nodeRadius))
-        .attr('x2', d => calculateLinkEnd(d, 'x', nodeRadius))
-        .attr('y2', d => calculateLinkEnd(d, 'y', nodeRadius));
-}
-
-function calculateLinkStart(link, axis, nodeRadius) {
-    const source = GraphState.currentNodes.find(n => n.id === link.source);
-    const target = GraphState.currentNodes.find(n => n.id === link.target);
-    if (!source || !target) return 0;
-    
-    const { ux, uy } = getUnitVector(source, target);
-    return axis === 'x' 
-        ? source.x + ux * nodeRadius 
-        : source.y + uy * nodeRadius;
-}
-
-function calculateLinkEnd(link, axis, nodeRadius) {
-    const source = GraphState.currentNodes.find(n => n.id === link.source);
-    const target = GraphState.currentNodes.find(n => n.id === link.target);
-    if (!source || !target) return 0;
-    
-    const { ux, uy } = getUnitVector(source, target);
-    const offset = nodeRadius + 6;
-    return axis === 'x' 
-        ? target.x - ux * offset 
-        : target.y - uy * offset;
-}
-
-function getUnitVector(source, target) {
-    const dx = target.x - source.x;
-    const dy = target.y - source.y;
-    const len = Math.sqrt(dx * dx + dy * dy) || 1;
-    return { ux: dx / len, uy: dy / len };
-}
-
-function updateUserLinks() {
-    const userLinkElements = GraphState.svgElements.userLinkElements;
-    if (!userLinkElements) return;
-
-    const nodeRadius = 20;
-    const arestasArray = GraphState.getArestasArray();
-
-    userLinkElements.selectAll('line.user-link')
-        .data(arestasArray, d => `${d.source}-${d.target}`)
-        .join('line')
-        .attr('class', 'user-link')
-        .attr('stroke', '#4CAF50')
-        .attr('stroke-width', 3)
-        .attr('marker-end', 'url(#arrowhead-user)')
-        .attr('x1', d => calculateLinkStart(d, 'x', nodeRadius))
-        .attr('y1', d => calculateLinkStart(d, 'y', nodeRadius))
-        .attr('x2', d => calculateLinkEnd(d, 'x', nodeRadius))
-        .attr('y2', d => calculateLinkEnd(d, 'y', nodeRadius));
-}
-
-function updateNodePositions() {
-    const nodeElements = GraphState.svgElements.nodeElements;
-    if (nodeElements) {
-        nodeElements.attr('transform', d => `translate(${d.x},${d.y})`);
-    }
-}
-
-// ============================================================================
-// INTERAÇÃO: SHIFT+CLICK PARA CRIAR ARESTAS
-// ============================================================================
-function handleShiftClick(nodeId) {
-    const marcado = GraphState.toggleVerticeMarcar(nodeId);
-    
-    if (!marcado) {
-        // Vértice foi desmarcado
-        GraphState.verticesMarcados.clear();
-    } else if (GraphState.verticesMarcados.size === 2) {
-        // Dois vértices marcados: criar aresta
-        const [primeiro, segundo] = Array.from(GraphState.verticesMarcados);
-        GraphState.adicionarAresta(primeiro, segundo);
-        GraphState.verticesMarcados.clear();
-    }
-    
-    updateNodeMarkers();
-    updateUserLinks();
-}
-
-function updateNodeMarkers() {
-    const nodeElements = GraphState.svgElements.nodeElements;
-    if (!nodeElements) return;
-    // Adiciona/removes classe ao grupo para permitir estilização via CSS
-    nodeElements.classed('marked', d => GraphState.verticesMarcados.has(d.id));
-
-    // Torna a indicação visual mais perceptível: muda preenchimento, borda, raio e cor do texto
-    nodeElements.selectAll('circle')
-        .attr('fill', d => GraphState.verticesMarcados.has(d.id) ? '#ffeb3b' : '#6fa8dc')
-        .attr('stroke', d => GraphState.verticesMarcados.has(d.id) ? '#b58000' : '#fff')
-        .attr('stroke-width', d => GraphState.verticesMarcados.has(d.id) ? 3 : 2)
-        .attr('r', d => GraphState.verticesMarcados.has(d.id) ? 24 : 20);
-
-    nodeElements.selectAll('text')
-        .attr('fill', d => GraphState.verticesMarcados.has(d.id) ? '#111' : '#fff');
-}
-
-// ============================================================================
-// POPUP DE INFORMAÇÕES DO NÓ
-// ============================================================================
-function showPopup(node, event) {
-    const popup = document.getElementById('popup');
-    
-    positionPopup(popup, event);
-    fillPopupContent(popup, node);
-    attachPopupEventListeners(node);
-}
-
-function positionPopup(popup, event) {
-    popup.style.left = (event.pageX + 20) + 'px';
-    popup.style.top = (event.pageY - 10) + 'px';
-    popup.classList.remove('hidden');
-}
-
-function fillPopupContent(popup, node) {
-    const partidaAtual = GameState.getPartida();
-    const depoimentoTexto = findDepoimentoForNode(node.nome, partidaAtual.depoimentos);
-    const depoimentoIndex = partidaAtual.depoimentos.findIndex(dep => dep.includes(node.nome));
-    const jaVerificado = GameState.isDepoimentoVerificado(depoimentoIndex);
-
-    popup.innerHTML = `
-        <h3>
-            <span>${node.nome}</span>
-            <button class="close-btn" id="popupClose">×</button>
-        </h3>
-        <p><b>Depoimento:</b><br>${depoimentoTexto}</p>
-        <div class="d-grid gap-2">
-            <button id="btnChutar" class="btn btn-primary">
-                <i class="bi bi-crosshair"></i> Chutar como Fofoqueiro
-            </button>
-            ${createVerificationButton(depoimentoIndex, jaVerificado)}
-        </div>
-    `;
-}
-
-function findDepoimentoForNode(nome, depoimentos) {
-    return depoimentos.find(dep => dep.includes(nome)) || 'Sem depoimento';
-}
-
-function createVerificationButton(index, isVerified) {
-    // Se já foi usada a verificação nesta partida e este depoimento não é o verificado, não mostrar botão
-    if (GameState.isVerificacaoUsada() && !isVerified) {
-        return '';
+    // desconectar ~20% dos vértices
+    const numDesconexos = Math.floor(numAmigos * 0.2);
+    const verticesConectadosSet = new Set();
+    for (const link of links) { verticesConectadosSet.add(link.source); verticesConectadosSet.add(link.target); }
+    if (verticesConectadosSet.size > numAmigos - numDesconexos && numDesconexos > 0) {
+      const verticesParaDesconectar = [];
+      for (let i = 0; i < numAmigos; i++) if (verticesConectadosSet.has(i)) verticesParaDesconectar.push(i);
+      verticesParaDesconectar.sort(() => Math.random() - 0.5);
+      const aDesconectar = verticesParaDesconectar.slice(0, numDesconexos);
+      links = links.filter(l => !aDesconectar.includes(l.source) && !aDesconectar.includes(l.target));
     }
 
-    if (index >= 0 && !isVerified) {
-        return `
-            <button id="btnVerificar" class="btn btn-outline-info btn-sm">
-                <i class="bi bi-search"></i> Verificar Veracidade
-            </button>
-        `;
-    } else if (isVerified) {
-        // Se este depoimento foi verificado, mostrar texto indicando (o resultado será exibido na lista principal)
-        return `<small class="text-muted">Depoimento já verificado</small>`;
-    }
-    return '';
-}
+    const numMentirosos = Math.max(1, Math.ceil(numAmigos * 0.2));
+    const indices = Array.from({length: numAmigos}, (_, i) => i);
+    for (let i = indices.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [indices[i], indices[j]] = [indices[j], indices[i]]; }
+    const mentirososSet = new Set(indices.slice(0, numMentirosos));
 
-function attachPopupEventListeners(node) {
-    document.getElementById('popupClose').onclick = closePopup;
-    document.getElementById('btnChutar').onclick = () => chutar(node.id);
-    
-    const btnVerificar = document.getElementById('btnVerificar');
-    if (btnVerificar) {
-        const partidaAtual = GameState.getPartida();
-        const depoimentoIndex = partidaAtual.depoimentos.findIndex(dep => dep.includes(node.nome));
-        btnVerificar.onclick = () => verificarDepoimento(depoimentoIndex);
-    }
-}
+    const nodes = nomesUsados.map((n, i) => ({
+      id: i,
+      nome: n,
+      mentiroso: mentirososSet.has(i) ? 0.10 + Math.random() * 0.30 : Math.random() * 0.10,
+      ouviuDe: null,
+      ouviuDeFalso: null,
+      confiabilidadeAcumulada: null
+    }));
 
-function closePopup() {
-    document.getElementById('popup').classList.add('hidden');
-}
+    currentNodes = nodes;
+    currentLinks = links;
 
-// ============================================================================
-// AÇÕES DO JOGO: CHUTAR, VERIFICAR, DICA
-// ============================================================================
-// IMPORTANTE: Todas as ações são validadas NO BACKEND para evitar exploits:
-// 1. Frontend envia a ação (ex: chutar ID 3)
-// 2. Backend valida se o chute está correto (compara com fofoqueiro armazenado no servidor)
-// 3. Backend atualiza vidas/score no banco de dados
-// 4. Backend retorna apenas o resultado (acertou: true/false, novas vidas, novo score)
-// 5. Frontend atualiza a UI com os dados recebidos
-//
-// O frontend NUNCA sabe antecipadamente quem é o fofoqueiro/mentiroso!
-async function chutar(nodeId) {
-    closePopup();
-
-    try {
-        // ============================================================
-        // [API] - DESCOMENTAR ESTE BLOCO QUANDO A API ESTIVER PRONTA
-        // ============================================================
-        /*
-        const result = await fetchAPI('/API/gameLogic/chute', { chuteId: parseInt(nodeId) });
-        */
+    // Função para calcular alcance de um vértice usando BFS
+    function calcularAlcance(verticeInicial, links, numTotal) {
+      const visitado = new Set([verticeInicial]);
+      const fila = [verticeInicial];
+      
+      while (fila.length > 0) {
+        const atual = fila.shift();
+        const vizinhos = links.filter(l => l.source === atual || l.target === atual)
+                              .map(l => l.source === atual ? l.target : l.source);
         
-        // ============================================================
-        // [MOCK] - APAGAR TODO ESTE BLOCO QUANDO A API ESTIVER PRONTA
-        // ============================================================
-        const partida = GameState.getPartida();
-        const acertou = nodeId === partida.fofoqueiro;
+        for (const v of vizinhos) {
+          if (!visitado.has(v)) {
+            visitado.add(v);
+            fila.push(v);
+          }
+        }
+      }
+      
+      return visitado.size / numTotal;
+    }
+
+    // escolher fofoqueiro entre vértices conectados que alcançam pelo menos 80%
+    let fofoqueiro = null;
+    let tentativasGrafo = 0;
+    const maxTentativas = 10;
+    
+    while (fofoqueiro === null && tentativasGrafo < maxTentativas) {
+      const verticesConectados = new Set();
+      for (const link of links) { verticesConectados.add(link.source); verticesConectados.add(link.target); }
+      
+      if (verticesConectados.size === 0 && numAmigos >= 2) { 
+        links.push({source:0,target:1}); 
+        verticesConectados.add(0); 
+        verticesConectados.add(1); 
+      }
+      
+      const verticesArray = Array.from(verticesConectados);
+      let encontrouFofoqueiro = false;
+      
+      // Testar todos os vértices conectados
+      for (const candidato of verticesArray) {
+        const alcance = calcularAlcance(candidato, links, numAmigos);
+        if (alcance >= 0.8) {
+          fofoqueiro = candidato;
+          encontrouFofoqueiro = true;
+          break;
+        }
+      }
+      
+      // Se não encontrou nenhum vértice com alcance >= 80%, regenerar grafo
+      if (!encontrouFofoqueiro) {
+        tentativasGrafo++;
+        links = gerarGrafoComunidades();
         
-        let result;
-        if (acertou) {
-            const pontos = partida.usouDica ? 1 : 2;
-            result = {
-                success: true,
-                acertou: true,
-                message: `🎉 Parabéns! Você acertou o fofoqueiro! +${pontos} pontos`,
-                nextRound: false,
-                scoreTotal: partida.scoreAtual + pontos
-            };
-            partida.scoreAtual += pontos;
+        // Reprocessar desconexões
+        const verticesConectadosSet = new Set();
+        for (const link of links) { verticesConectadosSet.add(link.source); verticesConectadosSet.add(link.target); }
+        if (verticesConectadosSet.size > numAmigos - numDesconexos && numDesconexos > 0) {
+          const verticesParaDesconectar = [];
+          for (let i = 0; i < numAmigos; i++) if (verticesConectadosSet.has(i)) verticesParaDesconectar.push(i);
+          verticesParaDesconectar.sort(() => Math.random() - 0.5);
+          const aDesconectar = verticesParaDesconectar.slice(0, numDesconexos);
+          links = links.filter(l => !aDesconectar.includes(l.source) && !aDesconectar.includes(l.target));
+        }
+        
+        currentLinks = links;
+      }
+    }
+    
+    // Fallback: se após todas as tentativas não encontrou, escolher aleatoriamente
+    if (fofoqueiro === null) {
+      const verticesConectados = new Set();
+      for (const link of links) { verticesConectados.add(link.source); verticesConectados.add(link.target); }
+      const verticesArray = Array.from(verticesConectados);
+      fofoqueiro = verticesArray[Math.floor(Math.random() * verticesArray.length)];
+    }
+
+    // espalhar fofoca (DFS)
+    const pilha = [fofoqueiro];
+    const visitado = new Set([fofoqueiro]);
+    nodes[fofoqueiro].ouviuDe = 'ninguém';
+    nodes[fofoqueiro].ouviuDeId = null;
+    while (pilha.length > 0) {
+      const atual = pilha.pop();
+      const vizinhos = links.filter(l => l.source === atual || l.target === atual).map(l => l.source === atual ? l.target : l.source);
+      vizinhos.sort(() => Math.random() - 0.5);
+      for (const v of vizinhos) {
+        if (!visitado.has(v)) {
+          visitado.add(v);
+          pilha.push(v);
+          nodes[v].ouviuDe = nodes[atual].nome;
+          nodes[v].ouviuDeId = atual;
+        }
+      }
+    }
+
+    // Evitar ciclos de tamanho 2 (A ouviu de B e B ouviu de A): quebrar aleatoriamente um dos dois
+    for (let i = 0; i < nodes.length; i++) {
+      const a = nodes[i];
+      if (a.ouviuDeId == null) continue;
+      const bId = a.ouviuDeId;
+      if (bId == null || bId < 0 || bId >= nodes.length) continue;
+      const b = nodes[bId];
+      if (b.ouviuDeId === a.id) {
+        // ciclo detectado entre a.id <-> bId: quebrar escolhendo aleatoriamente qual limpar
+        if (Math.random() < 0.5) {
+          a.ouviuDe = 'ninguém';
+          a.ouviuDeId = null;
         } else {
-            partida.vidasRestantes--;
-            if (partida.vidasRestantes <= 0) {
-                result = {
-                    success: true,
-                    acertou: false,
-                    gameOver: true,
-                    message: '💀 Você perdeu todas as vidas.',
-                    vidasRestantes: 0
-                };
-            } else {
-                const nomeCerto = partida.nomes.find(n => n.id === partida.fofoqueiro)?.nome;
-                result = {
-                    success: true,
-                    acertou: false,
-                    gameOver: false,
-                    message: `Errou! Você perdeu uma vida. (Dica: não era ${partida.nomes.find(n => n.id === nodeId)?.nome})`,
-                    vidasRestantes: partida.vidasRestantes
-                };
-            }
+          b.ouviuDe = 'ninguém';
+          b.ouviuDeId = null;
         }
-        // ============================================================
-        // [MOCK] - FIM DO BLOCO MOCK
-        // ============================================================
+      }
+    }
 
-        if (result.acertou) {
-            if (result.nextRound) {
-                showNotification(result.message || 'Acertou! Iniciando próxima rodada...', 'success');
-                // Atualizar estado conforme necessário
-            } else {
-                showNotification(result.message, 'success');
-                updateHeader(partida);
-                setTimeout(() => {
-                    if (confirm('Você venceu! Deseja jogar novamente?')) {
-                        location.reload();
-                    }
-                }, 2000);
-            }
-        } else if (result.gameOver) {
-            showNotification(result.message, 'danger');
-            updateHeader(partida);
-            setTimeout(() => {
-                if (confirm('Game Over! Deseja tentar novamente?')) {
-                    location.reload();
-                }
-            }, 2000);
+    // gerar versões falsas: apenas fofoqueiro mente — agora ele pode apontar para qualquer pessoa (não precisa ser vizinho)
+    for (const amigo of nodes) {
+      if (amigo.id === fofoqueiro) {
+        const candidatos = nodes.map(n => n.id).filter(id => id !== fofoqueiro);
+        if (candidatos.length > 0) {
+          const escolhido = candidatos[Math.floor(Math.random() * candidatos.length)];
+          amigo.ouviuDeFalso = nodes[escolhido].nome;
         } else {
-            showNotification(result.message, 'warning');
-            document.getElementById('vidasRestantes').textContent = result.vidasRestantes;
+          amigo.ouviuDeFalso = 'ninguém';
         }
-    } catch (err) {
-        console.error('Erro ao verificar chute:', err);
-        showNotification('Erro ao processar chute.', 'danger');
+      } else {
+        amigo.ouviuDeFalso = amigo.ouviuDe;
+      }
     }
-}
 
-async function verificarDepoimento(index) {
-    closePopup();
+    // D3 renderização
+    const svgRect = svgElement.getBoundingClientRect();
+    const width = svgRect.width || 900;
+    const height = svgRect.height || 600;
+    const margin = 30;
 
-    try {
-        // ============================================================
-        // [API] - DESCOMENTAR ESTE BLOCO QUANDO A API ESTIVER PRONTA
-        // ============================================================
-        /*
-        const result = await fetchAPI('/API/gameLogic/verificarDepoimento', { depoimentoIndex: index });
-        */
-        
-        // ============================================================
-        // [MOCK] - APAGAR TODO ESTE BLOCO QUANDO A API ESTIVER PRONTA
-        // ============================================================
-        // NOTA: Este código mock simula o que o BACKEND faria:
-        // - Verifica se o depoimento é mentira (dados armazenados no servidor)
-        // - Marca que a verificação foi usada (salva no banco de dados)
-        // - Retorna apenas se é MENTIRA ou VERDADE
-        // O frontend recebe apenas o resultado, não tem acesso à lista completa.
-        const partida = GameState.getPartida();
-        
-        if (GameState.isVerificacaoUsada()) {
-            showNotification('Você já usou a verificação nesta partida!', 'warning');
-            return;
-        }
-        
-        const ehMentira = partida.depoimentosMentira[index];
-        const result = {
-            success: true,
-            ehMentira: ehMentira,
-            message: ehMentira 
-                ? '🔴 Este depoimento é MENTIRA!' 
-                : '✅ Este depoimento é VERDADE!'
-        };
-        // ============================================================
-        // [MOCK] - FIM DO BLOCO MOCK
-        // ============================================================
+    simulation = d3.forceSimulation(nodes)
+      .force('link', d3.forceLink(links).id(d => d.id).distance(140))
+      .force('charge', d3.forceManyBody().strength(-400))
+      .force('center', d3.forceCenter(width / 2, height / 2))
+      .force('collision', d3.forceCollide().radius(30))
+      .force('x', d3.forceX(width / 2).strength(0.05))
+      .force('y', d3.forceY(height / 2).strength(0.05));
 
-        if (result.success) {
-            // Marcar que a verificação foi usada nesta partida (apenas uma por partida)
-            GameState.setVerificacaoUsada(true);
-            GameState.marcarDepoimentoVerificado(index);
-            GameState.marcarResultadoDepoimento(index, result.ehMentira);
+    linkElements = svg.append('g').selectAll('line').data(links).join('line').attr('class','link');
 
-            // Re-renderizar lista e popup/controles
-            renderDepoimentos(GameState.getPartida().depoimentos);
-            const tipo = result.ehMentira ? 'danger' : 'success';
-            showNotification(result.message, tipo);
+    nodeElements = svg.append('g').selectAll('g').data(nodes).join('g').attr('class','node').on('click', (event, d) => {
+      if (modoAtual === 'criar') {
+        // Modo criar: Shift+click para criar arestas entre vértices
+        if (event.shiftKey) {
+          criarArestaUsuario(d.id);
         } else {
-            showNotification(result.message, 'warning');
+          // Mostrar popup
+          const svgRect = svgElement.getBoundingClientRect();
+          const x = svgRect.left + d.x;
+          const y = svgRect.top + d.y;
+          mostrarPopup(d, x, y);
         }
-    } catch (err) {
-        console.error('Erro ao verificar depoimento:', err);
-        showNotification('Erro ao verificar depoimento.', 'danger');
-    }
-}
-
-async function solicitarDica() {
-    if (!confirm('Usar dica reduzirá sua pontuação de 2 para 1 ponto. Continuar?')) {
-        return;
-    }
-
-    try {
-        // ============================================================
-        // [API] - DESCOMENTAR ESTE BLOCO QUANDO A API ESTIVER PRONTA
-        // ============================================================
-        /*
-        const result = await fetchAPI('/API/gameLogic/dica', {});
-        */
-        
-        // ============================================================
-        // [MOCK] - APAGAR TODO ESTE BLOCO QUANDO A API ESTIVER PRONTA
-        // ============================================================
-        // NOTA: Este código mock simula o que o BACKEND faria:
-        // - Verifica se a dica já foi usada (consulta no banco de dados)
-        // - Marca que foi usada e reduz pontuação futura (salva no servidor)
-        // - Retorna o grafo completo de fofocas
-        // No backend real, o grafo já está gerado e armazenado.
-        // - Verifica se a dica já foi usada (consulta no banco de dados)
-        // - Marca que foi usada e reduz pontuação futura (salva no servidor)
-        // - Retorna o grafo completo de fofocas
-        // No backend real, o grafo já está gerado e armazenado.
-        const partidaAtual = GameState.getPartida();
-        
-        if (partidaAtual.usouDica) {
-            showNotification('Você já usou a dica nesta partida!', 'warning');
-            return;
-        }
-        
-        const result = {
-            success: true,
-            message: '💡 Dica ativada! Agora você pode ver o grafo de fofocas.',
-            grafo: partidaAtual.grafoCompleto
-        };
-        // ============================================================
-        // [MOCK] - FIM DO BLOCO MOCK
-        // ============================================================
-
-        if (result.success) {
-            showNotification(result.message, 'info');
-            partidaAtual.grafo = result.grafo;
-            partidaAtual.usouDica = true;
-            renderGraph(partidaAtual);
-            document.getElementById('btnDica').disabled = true;
-        } else {
-            showNotification(result.message, 'warning');
-        }
-    } catch (err) {
-        console.error('Erro ao solicitar dica:', err);
-        showNotification('Erro ao solicitar dica.', 'danger');
-    }
-}
-
-async function abandonarPartida() {
-    if (!confirm('Tem certeza que deseja abandonar esta partida? Todo o progresso será perdido.')) {
-        return;
-    }
-
-    try {
-        const response = await fetch('/API/gameSection/leave', {
-            method: 'POST',
-            credentials: 'same-origin'
-        });
-
-        if (response.ok) {
-            showNotification('Partida abandonada com sucesso!', 'success');
-            setTimeout(() => window.location.href = '/', 1500);
-        } else {
-            showNotification('Erro ao abandonar partida.', 'danger');
-        }
-    } catch (err) {
-        console.error('Erro ao abandonar partida:', err);
-        showNotification('Erro de conexão.', 'danger');
-    }
-}
-
-// ============================================================================
-// UTILITÁRIO: CHAMADAS DE API
-// ============================================================================
-async function fetchAPI(endpoint, body) {
-    const response = await fetch(endpoint, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
+      } else if (event.shiftKey) {
+        // Modo marcar: Shift+click para marcar/desmarcar
+        marcarVertice(d.id);
+      } else {
+        // Mostrar popup
+        const svgRect = svgElement.getBoundingClientRect();
+        const x = svgRect.left + d.x;
+        const y = svgRect.top + d.y;
+        mostrarPopup(d, x, y);
+      }
     });
 
-    const result = await response.json();
-    result.success = response.ok;
-    return result;
-}
+    nodeElements.append('circle').attr('r',18).attr('fill','#6fa8dc');
+    nodeElements.append('text').text(d => d.nome[0]).attr('x', -5).attr('y', 5);
 
-// ============================================================================
-// DRAG & DROP DE NÓS
-// ============================================================================
-function dragStarted(event, node) {
-    // Se Shift estiver pressionado não iniciar drag (isso é usado para criar arestas)
-    if (event.sourceEvent && event.sourceEvent.shiftKey) return;
-    d3.select(this).raise();
-    node.fx = node.x;
-    node.fy = node.y;
-}
+    simulation.on('tick', () => {
+      nodes.forEach(d => { d.x = Math.max(margin, Math.min(width - margin, d.x)); d.y = Math.max(margin, Math.min(height - margin, d.y)); });
+      linkElements.attr('x1', d => d.source.x).attr('y1', d => d.source.y).attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+      nodeElements.attr('transform', d => `translate(${d.x},${d.y})`);
+      atualizarPosicaoPopup();
+      // Atualizar posição das arestas do usuário
+      if (modoAtual === 'criar') {
+        atualizarVisualizacaoArestasUsuario();
+      }
+    });
 
-function dragged(event, node) {
-    // Evitar mover nó enquanto Shift estiver pressionado
-    if (event.sourceEvent && event.sourceEvent.shiftKey) return;
-    node.fx = event.x;
-    node.fy = event.y;
-    node.x = event.x;
-    node.y = event.y;
-    updateGraphPositions();
-}
+    // Mostrar textos automaticamente
+    document.getElementById('gameContainer').classList.remove('hidden');
+    const grafoElement = document.getElementById('grafo');
+    grafoElement.classList.remove('hidden');
+    const box = document.getElementById('infoBox');
+    box.innerHTML = `<h3>Versões dos amigos</h3>${montarHtmlVersoes(nodes)}<hr><p><b>Um deles está mentindo... Clique para chutar!</b></p><p><i>Modo: <strong>Criar Arestas</strong> - Shift+clique nos vértices para conectá-los</i></p>`;
+    box.classList.remove('hidden');
+    // delegação para chutar ao clicar em item
+    box.querySelectorAll('.pessoa-item').forEach(el => {
+      el.addEventListener('click', () => window.chutar(Number(el.dataset.id)));
+    });
 
-function dragEnded(event, node) {
-    // Evitar limpar fixações se o drag foi impedido pelo Shift
-    if (event.sourceEvent && event.sourceEvent.shiftKey) return;
-    node.fx = null;
-    node.fy = null;
-}
+    // Mostrar apenas vértices inicialmente (esconder arestas reais)
+    linkElements.style('opacity', 0);
 
-// ============================================================================
-// NOTIFICAÇÕES
-// ============================================================================
-function showNotification(message, type = 'info') {
-    const toast = document.createElement('div');
-    toast.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-    toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);';
-    toast.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    document.body.appendChild(toast);
-    setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 150);
-    }, 4000);
-}
+    // popup
+    function mostrarPopup(amigo, x, y) {
+      popupAmigoAtual = amigo;
+      const popup = document.getElementById('popup');
+      popup.style.left = (x + 20) + 'px';
+      popup.style.top = (y - 10) + 'px';
+      popup.classList.remove('hidden');
+      let confiabilidadeInfo = '';
+      if (amigo.confiabilidadeAcumulada !== null) {
+        confiabilidadeInfo = `<p><b>Confiabilidade acumulada:</b> ${(amigo.confiabilidadeAcumulada * 100).toFixed(1)}%</p>`;
+      }
+      popup.innerHTML = `
+        <h3>
+          <span>${amigo.nome}</span>
+          <button class="close-btn" id="popupClose">×</button>
+        </h3>
+        <p><b>Diz que ouviu de:</b> ${amigo.ouviuDeFalso || 'não ouviu nada'}</p>
+        <p><b>Grau de mentiroso:</b> ${(amigo.mentiroso * 100).toFixed(1)}%</p>
+        ${confiabilidadeInfo}
+        <button id="btnChutar">Chutar como fofoqueiro</button>
+        <button id="btnMarcar" style="background: #4CAF50; margin-top: 5px;">${verticesMarcados.has(amigo.id) ? 'Desmarcar' : 'Marcar'}</button>
+      `;
+      document.getElementById('popupClose').onclick = fecharPopup;
+      document.getElementById('btnChutar').onclick = () => { window.chutar(amigo.id); };
+      document.getElementById('btnMarcar').onclick = () => { marcarVertice(amigo.id); fecharPopup(); };
+    }
 
-// ============================================================================
-// CONFIGURAÇÃO DE EVENT LISTENERS
-// ============================================================================
-function configurarEventListeners() {
-    document.getElementById('btnDica').addEventListener('click', solicitarDica);
-    document.getElementById('btnAbandonar').addEventListener('click', abandonarPartida);
-}
+    // lógica do jogo (chute)
+    window.chutar = (id) => {
+      fecharPopup();
+      if (id === fofoqueiro) {
+        // sem dica = 2 pontos, grafo = 1 ponto, confiabilidade = 0 pontos
+        let pontosGanhos = 2; // Padrão: só textos
+        if (dicaGrafoUsada && !dicaDistanciaUsada) {
+          pontosGanhos = 1; // Textos + Grafo
+        } else if (dicaDistanciaUsada) {
+          pontosGanhos = 0; // Todas as dicas
+        }
+        pontos += pontosGanhos;
+        document.getElementById('pontos').textContent = pontos;
+        alert(`Você descobriu! ${nodes[id].nome} era o fofoqueiro! (+${pontosGanhos} pontos)`);
+        nivelAtual++;
+        iniciarJogo(nivelAtual);
+      } else {
+        vidas--;
+        document.getElementById('vidas').textContent = vidas;
+        if (vidas <= 0) {
+          alert(`Fim de jogo! O fofoqueiro era ${nodes[fofoqueiro].nome}.\nPontuação final: ${pontos} pontos`);
+          vidas = 3; pontos = 0; nivelAtual = tamanhoInicial;
+          document.getElementById('vidas').textContent = vidas;
+          document.getElementById('pontos').textContent = pontos;
+          iniciarJogo(nivelAtual);
+        } else {
+          alert('Errou! Tente novamente.');
+        }
+      }
+    };
 
-// ============================================================================
-// INICIALIZAÇÃO AUTOMÁTICA
-// ============================================================================
-document.addEventListener('DOMContentLoaded', initGame);
+    // Dica 1: mostrar grafo real e mudar para modo marcação
+    document.getElementById('btnDica1').onclick = () => {
+      if (!dicaGrafoUsada) {
+        dicaGrafoUsada = true;
+        modoAtual = 'marcar'; // Mudar para modo marcação
+        
+        // Limpar arestas do usuário e vértices marcados
+        verticesMarcados.clear();
+        arestasUsuario.clear();
+        svg.selectAll('line.user-link').remove();
+        nodeElements.classed('marked', false);
+        
+        // Mostrar arestas reais do grafo
+        linkElements.style('opacity', 1);
+        
+        // Atualizar texto de instrução
+        const box = document.getElementById('infoBox');
+        box.innerHTML = `<h3>Versões dos amigos</h3>${montarHtmlVersoes(nodes)}<hr><p><b>Um deles está mentindo... Clique para chutar!</b></p><p><i>Modo: <strong>Marcação</strong> - Shift+clique para marcar vértices</i></p>`;
+        box.querySelectorAll('.pessoa-item').forEach(el => {
+          el.addEventListener('click', () => window.chutar(Number(el.dataset.id)));
+        });
+        
+        document.getElementById('gameContainer').classList.remove('hidden');
+        const grafoElement = document.getElementById('grafo');
+        grafoElement.classList.remove('hidden');
+        document.getElementById('btnDica1').disabled = true;
+        document.getElementById('btnDica2').disabled = false;
+        simulation.alpha(1).restart();
+        document.getElementById('gameContainer').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    };
+
+    // Dica 2: confiabilidade (DFS colorido)
+    document.getElementById('btnDica2').onclick = () => {
+      if (!dicaDistanciaUsada && dicaGrafoUsada) {
+        dicaDistanciaUsada = true;
+        document.getElementById('btnDica2').disabled = true;
+        aplicarDijkstra();
+      }
+    };
+
+    // aplicarDijkstra (simplificado: DFS com confiabilidade acumulada)
+    function aplicarDijkstra() {
+      const confiabilidade = Array(currentNodes.length).fill(0);
+      confiabilidade[fofoqueiro] = 1.0;
+      const visitado = new Set();
+      const pilha = [{id: fofoqueiro, conf: 1.0}];
+      const ordemVisita = [];
+      while (pilha.length > 0) {
+        const {id: u, conf: confU} = pilha.pop();
+        if (visitado.has(u)) continue;
+        visitado.add(u);
+        ordemVisita.push(u);
+        const vizinhosComConf = [];
+        for (const link of currentLinks) {
+          const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+          const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+          let v = null;
+          if (sourceId === u) v = targetId; else if (targetId === u) v = sourceId; else continue;
+          if (visitado.has(v)) continue;
+          const pesoAresta = (currentNodes[u].mentiroso + currentNodes[v].mentiroso) / 2;
+          const novaConf = confU * (1 - pesoAresta);
+          if (novaConf > confiabilidade[v]) { confiabilidade[v] = novaConf; vizinhosComConf.push({id: v, conf: novaConf}); }
+        }
+        vizinhosComConf.sort((a,b) => a.conf - b.conf);
+        for (const vizinho of vizinhosComConf) pilha.push(vizinho);
+      }
+      for (let i = 0; i < currentNodes.length; i++) currentNodes[i].confiabilidadeAcumulada = confiabilidade[i] > 0 ? confiabilidade[i] : null;
+      let minConf = 1.0, maxConf = 0.0;
+      for (let i = 0; i < confiabilidade.length; i++) {
+        if (confiabilidade[i] > 0) { minConf = Math.min(minConf, confiabilidade[i]); maxConf = Math.max(maxConf, confiabilidade[i]); }
+      }
+      function calcularCor(d) {
+        const conf = confiabilidade[d.id] || 0;
+        if (conf === 0) return '#666';
+        
+        // Verde (0, 255, 0) para 100% de confiabilidade
+        // Vermelho (255, 0, 0) para 50% ou menos de confiabilidade
+        let red, green;
+        
+        if (conf <= 0.5) {
+          // 0% a 50%: vermelho puro
+          red = 255;
+          green = 0;
+        } else {
+          // 50% a 100%: gradiente de vermelho para verde
+          const proporcao = (conf - 0.5) / 0.5; // 0 (em 50%) a 1 (em 100%)
+          red = Math.floor(255 * (1 - proporcao));
+          green = Math.floor(255 * proporcao);
+        }
+        
+        return `rgb(${red}, ${green}, 0)`;
+      }
+      const delayPorVertice = 300;
+      ordemVisita.forEach((verticeId, index) => {
+        setTimeout(() => {
+          const d = currentNodes[verticeId];
+          const cor = calcularCor(d);
+          nodeElements.filter(node => node.id === verticeId).select('circle').transition().duration(500).style('fill', cor).attr('stroke', d.id === fofoqueiro ? '#00aa00' : '#444').attr('stroke-width', d.id === fofoqueiro ? 4 : 2).attr('r', 22).transition().duration(300).attr('r', 18);
+        }, index * delayPorVertice);
+      });
+      setTimeout(() => {
+        for (let i = 0; i < currentNodes.length; i++) {
+          if (confiabilidade[i] === 0) {
+            const d = currentNodes[i];
+            nodeElements.filter(node => node.id === i).select('circle').transition().duration(500).style('fill', '#666');
+          }
+        }
+      }, ordemVisita.length * delayPorVertice + 200);
+    }
+
+    // fim iniciarJogo
+  }
+
+  // Expor algumas funções globalmente
+  window.iniciarJogo = iniciarJogo;
+  window.marcarVertice = function(id) { marcarVertice(id); };
+  window.fecharPopup = function() { fecharPopup(); };
+  // chutar já é definido dentro iniciarJogo.
+  if (!window.chutar) window.chutar = function(id) { console.warn('chutar não inicializado ainda'); };
+
+  // Iniciar automaticamente após DOMContentLoaded
+  document.addEventListener('DOMContentLoaded', () => {
+    // Mostrar vidas/pontos iniciais
+    const vidasEl = document.getElementById('vidas'); if (vidasEl) vidasEl.textContent = '3';
+    const pontosEl = document.getElementById('pontos'); if (pontosEl) pontosEl.textContent = '0';
+    iniciarJogo();
+  });
+})();

@@ -1,6 +1,11 @@
-const db = require('../db/database');
-
-
+/**
+ * Gera um grafo usando o modelo Barabási-Albert (Preferential Attachment)
+ * @param {number} numNos - Número total de nós
+ * @param {number} numNosIniciais - Número de nós iniciais completamente conectados (default: 3)
+ * @param {number} numArestasPorNovoNo - Número de arestas por novo nó
+ * @param {array} listaDeNomesParaOsNos - Lista opcional de nomes para os nós
+ * @returns {object} - Grafo com nós e arestas
+ */
 
 exports.gerarGrafoBarabasiAlbert = function (
     numNos,
@@ -20,16 +25,16 @@ exports.gerarGrafoBarabasiAlbert = function (
 
 
     for(let i = 0; i < numNos; i++){
-        let name;
+        let nome;
 
         if(listaDeNomesParaOsNos && i < listaDeNomesParaOsNos.length){
-            name = listaDeNomesParaOsNos[i];
+            nome = listaDeNomesParaOsNos[i];
         } 
         else{
-            name = "No_" + i;
+            nome = "No_" + i;
         }
 
-        nodes.push({ id: i, name });
+        nodes.push({ id: i, nome });
     }
 
 
