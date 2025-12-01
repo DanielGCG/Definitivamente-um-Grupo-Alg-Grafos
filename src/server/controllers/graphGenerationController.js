@@ -25,16 +25,16 @@ exports.gerarGrafoBarabasiAlbert = function (
 
 
     for(let i = 0; i < numNos; i++){
-        let name;
+        let nome;
 
         if(listaDeNomesParaOsNos && i < listaDeNomesParaOsNos.length){
-            name = listaDeNomesParaOsNos[i];
+            nome = listaDeNomesParaOsNos[i];
         } 
         else{
-            name = "No_" + i;
+            nome = "No_" + i;
         }
 
-        nodes.push({ id: i, name });
+        nodes.push({ id: i, nome });
     }
 
 

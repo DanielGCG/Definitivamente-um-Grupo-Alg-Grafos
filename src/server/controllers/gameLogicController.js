@@ -62,10 +62,11 @@ function propagarFofoca(grafo, fofoqueiro, mentiroso) {
  */
 exports.inicializarJogo = async (idPartida, idUsuario, numNodes = 10) => {
     // Lista de nomes embaralhados
-    let amigos = db.query('SELECT fk_Usuario_id_usuario_ FROM Amizade WHERE fk_Usuario_id_usuario = ?', [idUsuario]);
+    const [amigos] = await db.query('SELECT nome_usuario FROM usuario WHERE id_usuario IN (SELECT fk_Usuario_id_usuario_ FROM Amizade WHERE fk_Usuario_id_usuario = ?)', [idUsuario]);
+    const nomesAmigos = amigos.map(a => a.nome_usuario);
     const nomesDisponiveis = [...NOMES].sort(() => Math.random() - 0.5);
     
-    let nomes = amigos.concat(nomesDisponiveis);
+    let nomes = nomesAmigos.concat(nomesDisponiveis);
 
 
     // Gerar grafo usando função centralizada
