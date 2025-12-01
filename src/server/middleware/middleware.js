@@ -11,7 +11,7 @@ const checkAuthStatus = async (req, res, next) => {
     if (token) {
         try {
             // Verificar se o token é válido no banco de dados
-            const [rows] = await db.query('SELECT id_usuario, nome_usuario, foto_usuario, score_usuario FROM usuario WHERE token_usuario = ? LIMIT 1', [token]);
+            const [rows] = await db.query('SELECT id_usuario, nome_usuario, foto_usuario, score_usuario FROM Usuario WHERE token_usuario = ? LIMIT 1', [token]);
             
             if (rows.length > 0) {
                 const usuario = rows[0];
