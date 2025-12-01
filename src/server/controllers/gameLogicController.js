@@ -60,14 +60,18 @@ function propagarFofoca(grafo, fofoqueiro, mentiroso) {
 /**
  * Inicializa um novo jogo para uma partida
  */
-exports.inicializarJogo = async (idPartida, numNodes = 10) => {
+exports.inicializarJogo = async (idPartida, idUsuario, numNodes = 10) => {
     // Lista de nomes embaralhados
+    let amigos = db.query('SELECT fk_Usuario_id_usuario_ FROM Amizade WHERE fk_Usuario_id_usuario = ?', [idUsuario]);
     const nomesDisponiveis = [...NOMES].sort(() => Math.random() - 0.5);
     
+    let nomes = amigos.concat(nomesDisponiveis);
+
+
     // Gerar grafo usando função centralizada
     const m0 = Math.min(3, Math.floor(numNodes / 3));
     const m = Math.max(1, Math.min(2, m0));
-    const grafo = graphController.gerarGrafoBarabasiAlbert(numNodes, m0, m, nomesDisponiveis);
+    const grafo = graphController.gerarGrafoBarabasiAlbert(numNodes, m0, m, nomes);
 
     // Escolher fofoqueiro aleatório
     const fofoqueiro = Math.floor(Math.random() * grafo.nodes.length);
@@ -128,7 +132,7 @@ exports.inicializarJogo = async (idPartida, numNodes = 10) => {
     // Persistir estado inicial no banco
     await salvarEstadoJogo(idPartida);
 
-    return {
+    return{
         nomes: grafo.nodes.map(n => ({ id: n.id, nome: n.nome })),
         depoimentos: depoimentos.map(d => `${d.de} contou algo para ${d.para}`),
         vidasRestantes: 3
@@ -166,7 +170,7 @@ exports.obterEstadoJogo = async (idPartida) => {
 /**
  * Verificar chute do jogador
  */
-exports.verificarChute = async (req, res) => {
+exports.verificarChute = async(req, res) => {
     try {
         const token_usuario = req.cookies?.token_usuario;
         if (!token_usuario) return res.status(401).json({ message: 'Não autenticado.' });
@@ -475,7 +479,7 @@ async function carregarEstadoJogo(idPartida) {
             [idPartida]
         );
 
-        if (!rows || rows.length === 0 || !rows[0].estado_jogo_json) {
+        if (!rows || rows.length === 0 || !rows[0].estado_jogo_json){
             return null;
         }
 
