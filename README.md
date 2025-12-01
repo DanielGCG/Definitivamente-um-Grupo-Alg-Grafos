@@ -4,11 +4,11 @@ Disciplina: Algoritmos e Grafos | Professor: Paulo Mann
 
 Alunos:
 
-Ana Caroline Souza Lira
-Daniel Goulart Camacho
-Fellipe Tambasco Bezerra
-Maria Clara Sales
-Tales Calixto de Lima
+- Ana Caroline Souza Lira - [@acarolls](https://github.com/acarolls)
+- Daniel Goulart Camacho - [@DanielGCG](https://github.com/DanielGCG)
+- Fellipe Tambasco Bezerra - [@fellipetb](https://github.com/fellipetb)
+- Maria Clara Sales - [@mariLuwai](https://github.com/mariLuwai)
+- Tales Calixto de Lima
 
 # Definitivamente-um-Grupo-Alg-Grafos
 Projeto de Algoritmos e Grafos
