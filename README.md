@@ -46,17 +46,14 @@ Aliás, sobre os nossos algoritmos utilizados de maneira adequada para a resolu�
 
 ## 🎲 Banco de Dados
 
-Nosso banco de dados (BD), para armazenamento das informações utilizadas pelo sistema de forma persistente, utiliza o **MySQL** como sistema de gerenciamento de banco de dados (SGBD). Além, claro, de haver a correta comunicação entre o front-end e o BD. (ALTERAR?)
+Nosso banco de dados (BD), para armazenamento das informações utilizadas pelo sistema de forma persistente, utiliza o **MySQL** como sistema de gerenciamento de banco de dados (SGBD), montado a partir da abordagem da modelagem Top-Down, passando pelas fases conceitual, lógica e, por fim, física.
 
 Nessa perspectiva, usamos as tabelas:
 
 - **Usuario**
 - **Partida**
-- **Personagem**
 - **Amizade**
-- **Possui**
 
-para tal propósito no BD.
-
+A tabela **Usuário** armazena as informações de cada jogador _(Nome, senha, token de autenticação, pontuação geral, foto e id)_, a tabela **Amizade** permite o armazenamento de dos pedidos  _(relação unidirecional entre usuários)_ e amizades _(relação bidirecional na tabela)_  e, por fim, a tabela **Partida**, que armazena colunas que são atualizadas em tempo real para permitir o funcionamento da lógica do jogo através dos controladores.
 ---
 
