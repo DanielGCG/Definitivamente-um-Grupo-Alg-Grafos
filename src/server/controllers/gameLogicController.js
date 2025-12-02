@@ -311,16 +311,12 @@ exports.verificarChute = async(req, res) => {
                 });
             } catch (errRound) {
                 console.error('Erro ao iniciar nova rodada:', errRound);
-                // Se falhar ao criar nova rodada, devolver vitória simples e encerrar partida como fallback
+                // Se falhar ao criar nova rodada, encerrar partida
                 const gameSectionController = require('./gameSectionController');
-                await gameSectionController.encerrarPartida(idPartida, 'V', novoScore);
-                return res.status(200).json({
-                    acertou: true,
-                    fofoqueiro: fofoqueiro,
-                    nomeFofoqueiro: grafo.nodes[fofoqueiro].nome,
-                    pontos,
-                    scoreTotal: novoScore,
-                    message: `Parabéns! Você descobriu o fofoqueiro e ganhou ${pontos} ponto(s)!` 
+                await gameSectionController.encerrarPartida(idPartida, novoScore);
+                return res.status(500).json({
+                    message: 'Erro ao criar próxima rodada. Partida encerrada.',
+                    scoreTotal: novoScore
                 });
             }
         } else {
@@ -335,7 +331,7 @@ exports.verificarChute = async(req, res) => {
                 );
                 
                 const gameSectionController = require('./gameSectionController');
-                await gameSectionController.encerrarPartida(idPartida, 'D', 0);
+                await gameSectionController.encerrarPartida(idPartida, scoreAtual);
 
                 return res.status(200).json({
                     acertou: false,
