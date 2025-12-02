@@ -79,6 +79,22 @@
     <div id="popup" class="hidden" style="position: absolute; background: white; border: 2px solid #333; border-radius: 8px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.25); z-index: 10000; min-width: 280px;">
         <!-- Conteúdo será injetado dinamicamente -->
     </div>
+
+    <!-- Modal de Confirmação de Dica -->
+    <div class="modal fade" id="dicaModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-body text-center">
+                    <i class="bi bi-lightbulb-fill text-warning fs-1"></i>
+                    <p class="mt-2 mb-3">Usar dica reduzirá a pontuação de <strong>2</strong> para <strong>1 ponto</strong>.</p>
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-warning" id="confirmarDica">Usar Dica</button>
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Scripts -->

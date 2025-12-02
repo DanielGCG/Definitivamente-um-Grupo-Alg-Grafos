@@ -27,9 +27,6 @@ app.use('/API/gameSection/', require('./server/routes/gameSection'));
 // Rota de Lógica do Jogo
 app.use('/API/gameLogic/', require('./server/routes/gameLogic'));
 
-// Rota de API
-//app.use('/api/', require('./server/routes/api'));
-
 // Rota principal
 app.use('/', require('./server/routes/main'));
 

@@ -659,9 +659,15 @@ async function verificarDepoimento(index) {
 }
 
 async function solicitarDica() {
-    if (!confirm('Usar dica reduzirá sua pontuação de 2 para 1 ponto. Continuar?')) {
-        return;
-    }
+    // Mostrar modal de confirmação
+    const modal = new bootstrap.Modal(document.getElementById('dicaModal'));
+    modal.show();
+}
+
+async function confirmarUsoDica() {
+    // Fechar modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('dicaModal'));
+    modal.hide();
 
     try {
         const result = await fetchAPI('/API/gameLogic/dica', {});
@@ -773,6 +779,12 @@ function showNotification(message, type = 'info') {
 function configurarEventListeners() {
     document.getElementById('btnDica').addEventListener('click', solicitarDica);
     document.getElementById('btnAbandonar').addEventListener('click', abandonarPartida);
+    
+    // Listener para confirmar uso da dica no modal
+    const btnConfirmarDica = document.getElementById('confirmarDica');
+    if (btnConfirmarDica) {
+        btnConfirmarDica.addEventListener('click', confirmarUsoDica);
+    }
 }
 
 // ============================================================================
