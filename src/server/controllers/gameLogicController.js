@@ -71,7 +71,7 @@ function propagarFofoca(grafo, fofoqueiro, mentiroso) {
  */
 exports.inicializarJogo = async (idPartida, idUsuario, numNodes = 6) => {
     // Lista de nomes embaralhados
-    const [amigos] = await db.query('SELECT u.nome_usuario FROM usuario u JOIN amizade a1 ON a1.fk_Usuario_id_usuario = ? AND a1.fk_Usuario_id_usuario_ = u.id_usuario JOIN amizade a2 ON a2.fk_Usuario_id_usuario = u.id_usuario AND a2.fk_Usuario_id_usuario_ = ?', [idUsuario]);
+    const [amigos] = await db.query('SELECT u.nome_usuario FROM usuario u JOIN amizade a1 ON a1.fk_Usuario_id_usuario = ? AND a1.fk_Usuario_id_usuario_ = u.id_usuario JOIN amizade a2 ON a2.fk_Usuario_id_usuario = u.id_usuario AND a2.fk_Usuario_id_usuario_ = ?', [idUsuario, idUsuario]);
     const nomesAmigos = amigos.map(a => a.nome_usuario);
     const nomesDisponiveis = [...NOMES].sort(() => Math.random() - 0.5);
     
