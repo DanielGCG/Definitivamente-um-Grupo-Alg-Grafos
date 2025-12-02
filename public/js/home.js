@@ -394,7 +394,7 @@ function initializePage() {
     fetchAndRenderFriends();
     setupSearchDebounce();
     
-    console.log('✅ Página inicial carregada com sucesso!');
+    console.log('Página inicial carregada com sucesso!');
 }
 
 // Inicializa quando o DOM estiver pronto
