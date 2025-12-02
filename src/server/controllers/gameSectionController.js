@@ -97,7 +97,7 @@ exports.leaveGameSection = async (req, res) => {
 
         // Buscar partida em andamento do usuário
         const [rowsPartida] = await db.query(
-            'SELECT id_partida FROM partida WHERE fk_Usuario_id_usuario = ? AND status_partida = ? LIMIT 1',
+            'SELECT id_partida, score_partida FROM partida WHERE fk_Usuario_id_usuario = ? AND status_partida = ? LIMIT 1',
             [userId, 'em_andamento']
         );
 
@@ -106,12 +106,13 @@ exports.leaveGameSection = async (req, res) => {
         }
 
         const idPartida = rowsPartida[0].id_partida;
+        const scoreAtual = rowsPartida[0].score_partida;
 
-        // Deletar a partida
-        await db.query('DELETE FROM partida WHERE id_partida = ?', [idPartida]);
+        // Encerrar partida como abandono e atualizar score máximo
+        await exports.encerrarPartida(idPartida, scoreAtual);
 
         return res.status(200).json({
-            message: 'Partida deletada com sucesso.',
+            message: 'Partida abandonada com sucesso.',
             id_partida: idPartida
         });
     } catch (err) {
@@ -120,20 +121,13 @@ exports.leaveGameSection = async (req, res) => {
     }
 };
 
-exports.encerrarPartida = async (idPartida, resultado, scoreFinal) => {
+exports.encerrarPartida = async (idPartida, scoreFinal) => {
     try {
+        // A trigger 'atualizar_score_maximo_usuario' atualizará o score_usuario automaticamente
         await db.query(
-            'UPDATE partida SET status_partida = ?, resultado_partida = ?, score_partida = ? WHERE id_partida = ?',
-            ['concluida', resultado, scoreFinal, idPartida]
+            'UPDATE partida SET status_partida = ?, score_partida = ? WHERE id_partida = ?',
+            ['concluida', scoreFinal, idPartida]
         );
-        
-        // Atualizar score do usuário se ganhou
-        if (resultado === 'V') {
-            await db.query(
-                'UPDATE usuario SET score_usuario = score_usuario + ? WHERE id_usuario = (SELECT fk_Usuario_id_usuario FROM partida WHERE id_partida = ?)',
-                [scoreFinal, idPartida]
-            );
-        }
         
         return { success: true };
     } catch (err) {

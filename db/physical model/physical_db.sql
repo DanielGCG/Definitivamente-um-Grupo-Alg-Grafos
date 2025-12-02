@@ -11,11 +11,9 @@ CREATE TABLE Usuario (
 
 CREATE TABLE Partida (
     id_partida INTEGER AUTO_INCREMENT PRIMARY KEY,
-    resultado_partida CHAR(1),
     numRodadas_partida INTEGER DEFAULT 0,
     score_partida INTEGER DEFAULT 0,
     status_partida VARCHAR(20) DEFAULT 'em_andamento',
-    data_criacao_partida TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     verificacao_usada_partida TINYINT(1) DEFAULT 0,
     depoimento_verificado_index_partida INTEGER DEFAULT NULL,
     grafo_json_partida TEXT,
@@ -68,3 +66,27 @@ ALTER TABLE Possui ADD CONSTRAINT FK_Possui_2
     FOREIGN KEY (fk_Partida_id_partida)
     REFERENCES Partida (id_partida)
     ON DELETE SET NULL;
+
+-- Trigger para atualizar automaticamente o score máximo do usuário
+-- quando uma partida for concluída
+DELIMITER $$
+
+CREATE TRIGGER atualizar_score_maximo_usuario
+AFTER UPDATE ON Partida
+FOR EACH ROW
+BEGIN
+    -- Só executa se o status mudou para 'concluida'
+    IF NEW.status_partida = 'concluida' AND OLD.status_partida != 'concluida' THEN
+        -- Atualiza o score do usuário com o maior score entre todas suas partidas concluídas
+        UPDATE Usuario
+        SET score_usuario = (
+            SELECT COALESCE(MAX(score_partida), 0)
+            FROM Partida
+            WHERE fk_Usuario_id_usuario = NEW.fk_Usuario_id_usuario
+            AND status_partida = 'concluida'
+        )
+        WHERE id_usuario = NEW.fk_Usuario_id_usuario;
+    END IF;
+END$$
+
+DELIMITER ;
