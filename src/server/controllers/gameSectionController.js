@@ -1,5 +1,4 @@
 const db = require('../db/database');
-const graphController = require('./graphGenerationController');
 const gameLogicController = require('./gameLogicController');
 
 exports.joinGameSection = async (req, res) => {

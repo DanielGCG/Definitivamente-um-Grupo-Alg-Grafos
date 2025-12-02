@@ -49,7 +49,6 @@ exports.listarUsuariosPorNome = async (req, res) => {
     }
 };
 
-
 // Cria novo usuário
 exports.criarUsuario = async (req, res) => {
     try {
@@ -158,7 +157,6 @@ exports.atualizarUsuario = async (req, res) => {
         return res.status(500).json({ message: 'Erro interno.' });
     }
 };
-
 
 // Login de usuário
 exports.loginUsuario = async (req, res) => {
@@ -273,7 +271,7 @@ exports.logoutUsuario = async (req, res) => {
     }
 };
 
-// Lista pedidos de amizade pendentes (pessoas que adicionaram o usuário mas ele não adicionou de volta)
+// Lista pedidos de amizade pendentes
 exports.listarPedidosAmizade = async (req, res) => {
     try {
         const token_usuario = req.cookies?.token_usuario;

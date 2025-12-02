@@ -10,6 +10,69 @@ const NOMES = [
 ];
 
 /**
+ * Busca personagens para o jogo (amigos, usuários aleatórios e nomes genéricos)
+ * Retorna array de { nome, foto } na ordem de prioridade
+ */
+async function buscarPersonagens(idUsuario, numNodes) {
+    // 1. Buscar amigos do usuário (com fotos) - apenas amizades recíprocas
+    const [amigos] = await db.query(
+        `SELECT u.id_usuario, u.nome_usuario, u.foto_usuario
+         FROM Amizade a1
+         JOIN Amizade a2 
+             ON a1.fk_Usuario_id_usuario = a2.fk_Usuario_id_usuario_
+            AND a1.fk_Usuario_id_usuario_ = a2.fk_Usuario_id_usuario
+         JOIN usuario u ON u.id_usuario = a1.fk_Usuario_id_usuario_
+         WHERE a1.fk_Usuario_id_usuario = ?
+         ORDER BY RAND()
+         LIMIT ?`,
+        [idUsuario, numNodes]
+    );
+    
+    const personagens = amigos.map(a => ({
+        id: a.id_usuario,
+        nome: a.nome_usuario,
+        foto: a.foto_usuario
+    }));
+
+    // 2. Se precisar de mais nós, buscar usuários aleatórios (excluindo amigos já selecionados e o próprio usuário)
+    if (personagens.length < numNodes) {
+        const idsExcluir = [idUsuario, ...personagens.map(p => p.id)];
+        const placeholders = idsExcluir.map(() => '?').join(',');
+        const falta = numNodes - personagens.length;
+        
+        const [usuariosAleatorios] = await db.query(
+            `SELECT nome_usuario, foto_usuario
+             FROM usuario
+             WHERE id_usuario NOT IN (${placeholders})
+             ORDER BY RAND()
+             LIMIT ?`,
+            [...idsExcluir, falta]
+        );
+        
+        usuariosAleatorios.forEach(u => {
+            personagens.push({
+                nome: u.nome_usuario,
+                foto: u.foto_usuario
+            });
+        });
+    }
+
+    // 3. Se ainda precisar, usar nomes genéricos
+    const nomesGenericos = [...NOMES].sort(() => Math.random() - 0.5);
+    let nomeGenIndex = 0;
+    while (personagens.length < numNodes) {
+        const nomeGenerico = nomesGenericos[nomeGenIndex] || `Pessoa_${personagens.length}`;
+        nomeGenIndex++;
+        personagens.push({
+            nome: nomeGenerico,
+            foto: '/img/usuario.png'
+        });
+    }
+
+    return personagens;
+}
+
+/**
  * BFS para propagar fofoca a partir do fofoqueiro
  * BFS garante que a fofoca se propague por níveis (distância do fofoqueiro)
  */
@@ -70,60 +133,7 @@ function propagarFofoca(grafo, fofoqueiro, mentiroso) {
  * Inicializa um novo jogo para uma partida
  */
 exports.inicializarJogo = async (idPartida, idUsuario, numNodes = 6) => {
-    // 1. Buscar amigos do usuário (com fotos) - apenas amizades recíprocas
-    const [amigos] = await db.query(
-        `SELECT u.id_usuario, u.nome_usuario, u.foto_usuario
-         FROM Amizade a1
-         JOIN Amizade a2 
-             ON a1.fk_Usuario_id_usuario = a2.fk_Usuario_id_usuario_
-            AND a1.fk_Usuario_id_usuario_ = a2.fk_Usuario_id_usuario
-         JOIN usuario u ON u.id_usuario = a1.fk_Usuario_id_usuario_
-         WHERE a1.fk_Usuario_id_usuario = ?
-         ORDER BY RAND()
-         LIMIT ?`,
-        [idUsuario, numNodes]
-    );
-    
-    const personagens = amigos.map(a => ({
-        id: a.id_usuario,
-        nome: a.nome_usuario,
-        foto: a.foto_usuario
-    }));
-
-    // 2. Se precisar de mais nós, buscar usuários aleatórios (excluindo amigos já selecionados e o próprio usuário)
-    if (personagens.length < numNodes) {
-        const idsExcluir = [idUsuario, ...personagens.map(p => p.id)];
-        const placeholders = idsExcluir.map(() => '?').join(',');
-        const falta = numNodes - personagens.length;
-        
-        const [usuariosAleatorios] = await db.query(
-            `SELECT nome_usuario, foto_usuario
-             FROM usuario
-             WHERE id_usuario NOT IN (${placeholders})
-             ORDER BY RAND()
-             LIMIT ?`,
-            [...idsExcluir, falta]
-        );
-        
-        usuariosAleatorios.forEach(u => {
-            personagens.push({
-                nome: u.nome_usuario,
-                foto: u.foto_usuario
-            });
-        });
-    }
-
-    // 3. Se ainda precisar, usar nomes genéricos
-    const nomesGenericos = [...NOMES].sort(() => Math.random() - 0.5);
-    let nomeGenIndex = 0;
-    while (personagens.length < numNodes) {
-        const nomeGenerico = nomesGenericos[nomeGenIndex] || `Pessoa_${personagens.length}`;
-        nomeGenIndex++;
-        personagens.push({
-            nome: nomeGenerico,
-            foto: '/img/usuario.png' // Foto placeholder para nomes genéricos
-        });
-    }
+    const personagens = await buscarPersonagens(idUsuario, numNodes);
 
     // Gerar grafo usando função centralizada
     const m0 = Math.max(2, Math.min(3, Math.floor(numNodes / 2)));
@@ -290,11 +300,13 @@ exports.verificarChute = async(req, res) => {
             try {
                 const novosNodes = Math.max((grafo.nodes ? grafo.nodes.length : 0) + 1, 2);
 
+                // Buscar personagens para a nova rodada usando função reutilizável
+                const personagensNovos = await buscarPersonagens(userId, novosNodes);
+
                 // Gerar novo grafo
                 const m0 = Math.max(2, Math.min(3, Math.floor(novosNodes / 2)));
                 const m = Math.max(1, Math.min(2, m0 - 1));
-                const nomesDisponiveis = [...NOMES].sort(() => Math.random() - 0.5);
-                const novoGrafo = graphController.gerarGrafoBarabasiAlbert(novosNodes, m0, m, nomesDisponiveis);
+                const novoGrafo = graphController.gerarGrafoBarabasiAlbert(novosNodes, m0, m, personagensNovos);
 
                 // Escolher fofoqueiro e mentiroso
                 const novoFofoqueiro = Math.floor(Math.random() * novoGrafo.nodes.length);
@@ -351,7 +363,7 @@ exports.verificarChute = async(req, res) => {
                     pontos,
                     scoreTotal: novoScore,
                     numNodes: novoGrafo.nodes.length,
-                    nomes: novoGrafo.nodes.map(n => ({ id: n.id, nome: n.nome })),
+                    nomes: novoGrafo.nodes.map(n => ({ id: n.id, nome: n.nome, foto: n.foto })),
                     depoimentos: novosDepoimentos.map(d => `${d.quemOuviu}: ouvi de ${d.deQuem}`),
                     vidasRestantes: vidasRestantes,
                     usouDica: false,
