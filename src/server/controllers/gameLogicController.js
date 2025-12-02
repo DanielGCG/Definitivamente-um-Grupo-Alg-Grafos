@@ -71,7 +71,7 @@ function propagarFofoca(grafo, fofoqueiro, mentiroso) {
  */
 exports.inicializarJogo = async (idPartida, idUsuario, numNodes = 6) => {
     // Lista de nomes embaralhados
-    const [amigos] = await db.query('SELECT u.nome_usuario FROM usuario u JOIN amizade a1 ON a1.fk_Usuario_id_usuario = ? AND a1.fk_Usuario_id_usuario_ = u.id_usuario JOIN amizade a2 ON a2.fk_Usuario_id_usuario = u.id_usuario AND a2.fk_Usuario_id_usuario_ = ?', [idUsuario]);
+    const [amigos] = await db.query('SELECT nome_usuario FROM usuario WHERE id_usuario IN (SELECT fk_Usuario_id_usuario_ FROM Amizade WHERE fk_Usuario_id_usuario = ?)', [idUsuario]);
     const nomesAmigos = amigos.map(a => a.nome_usuario);
     const nomesDisponiveis = [...NOMES].sort(() => Math.random() - 0.5);
     
@@ -311,16 +311,12 @@ exports.verificarChute = async(req, res) => {
                 });
             } catch (errRound) {
                 console.error('Erro ao iniciar nova rodada:', errRound);
-                // Se falhar ao criar nova rodada, devolver vitória simples e encerrar partida como fallback
+                // Se falhar ao criar nova rodada, encerrar partida
                 const gameSectionController = require('./gameSectionController');
-                await gameSectionController.encerrarPartida(idPartida, 'V', novoScore);
-                return res.status(200).json({
-                    acertou: true,
-                    fofoqueiro: fofoqueiro,
-                    nomeFofoqueiro: grafo.nodes[fofoqueiro].nome,
-                    pontos,
-                    scoreTotal: novoScore,
-                    message: `Parabéns! Você descobriu o fofoqueiro e ganhou ${pontos} ponto(s)!` 
+                await gameSectionController.encerrarPartida(idPartida, novoScore);
+                return res.status(500).json({
+                    message: 'Erro ao criar próxima rodada. Partida encerrada.',
+                    scoreTotal: novoScore
                 });
             }
         } else {
@@ -335,7 +331,7 @@ exports.verificarChute = async(req, res) => {
                 );
                 
                 const gameSectionController = require('./gameSectionController');
-                await gameSectionController.encerrarPartida(idPartida, 'D', 0);
+                await gameSectionController.encerrarPartida(idPartida, scoreAtual);
 
                 return res.status(200).json({
                     acertou: false,
