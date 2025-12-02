@@ -1,9 +1,6 @@
 const db = require('../db/database');
 const graphController = require('./graphGenerationController');
 
-// Armazena estado dos jogos em memória (id_partida -> estadoJogo)
-const jogosAtivos = new Map();
-
 // Lista de nomes aleatórios para os nós
 const NOMES = [
     'Ana', 'Bruno', 'Carlos', 'Diana', 'Eduardo', 'Fernanda', 'Gabriel', 'Helena',
@@ -60,7 +57,7 @@ function propagarFofoca(grafo, fofoqueiro, mentiroso) {
 /**
  * Inicializa um novo jogo para uma partida
  */
-exports.inicializarJogo = async (idPartida, idUsuario, numNodes = 10) => {
+exports.inicializarJogo = async (idPartida, idUsuario, numNodes = 6) => {
     // Lista de nomes embaralhados
     const [amigos] = await db.query('SELECT nome_usuario FROM usuario WHERE id_usuario IN (SELECT fk_Usuario_id_usuario_ FROM Amizade WHERE fk_Usuario_id_usuario = ?)', [idUsuario]);
     const nomesAmigos = amigos.map(a => a.nome_usuario);
@@ -68,11 +65,10 @@ exports.inicializarJogo = async (idPartida, idUsuario, numNodes = 10) => {
     
     let nomes = nomesAmigos.concat(nomesDisponiveis);
 
-
     // Gerar grafo usando função centralizada
-    const m0 = Math.min(3, Math.floor(numNodes / 3));
-    const m = Math.max(1, Math.min(2, m0));
-    const grafo = graphController.gerarGrafoBarabasiAlbert(numNodes, m0, m, nomes);
+    const m0 = Math.max(2, Math.min(3, Math.floor(numNodes / 2)));
+    const m = Math.max(1, Math.min(2, m0 - 1));
+    const grafo = graphController.gerarGrafoBarabasiAlbert(numNodes, m0, m, nomes, numNodes);
 
     // Escolher fofoqueiro aleatório
     const fofoqueiro = Math.floor(Math.random() * grafo.nodes.length);
@@ -87,7 +83,6 @@ exports.inicializarJogo = async (idPartida, idUsuario, numNodes = 10) => {
     const propagacao = propagarFofoca(grafo, fofoqueiro, mentiroso);
 
     // Gerar depoimentos: cada pessoa diz de quem recebeu a fofoca
-    // Fofoqueiro deve mentir sobre a origem
     const depoimentos = [];
     propagacao.forEach((node, index) => {
         if (node.nivel === 0) {
@@ -112,32 +107,33 @@ exports.inicializarJogo = async (idPartida, idUsuario, numNodes = 10) => {
         }
     });
 
-    // Armazenar estado do jogo
-    const estadoJogo = {
-        idPartida,
-        grafo,
-        fofoqueiro,
-        mentiroso,
-        propagacao,
-        depoimentos,
-        vidasRestantes: 3,
-        scoreAtual: 0,
-        usouDica: false,
-        depoimentosVerificados: new Set(),
-        usouVerificacao: false, // marca se o jogador já usou a verificação nesta partida
-        depoimentoVerificadoIndex: null // qual índice foi verificado (null se nenhum)
-    };
+    // Embaralhar depoimentos para randomizar a ordem
+    for (let i = depoimentos.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [depoimentos[i], depoimentos[j]] = [depoimentos[j], depoimentos[i]];
+    }
 
-    jogosAtivos.set(idPartida, estadoJogo);
-
-    // Persistir estado inicial no banco
-    await salvarEstadoJogo(idPartida);
+    // Salvar no banco de dados
+    await db.query(
+        `UPDATE partida SET 
+            grafo_json_partida = ?,
+            depoimentos_json_partida = ?,
+            fofoqueiro_id_partida = ?,
+            mentiroso_id_partida = ?,
+            vidas_restantes_partida = 3,
+            score_partida = 0,
+            usou_dica_partida = 0,
+            verificacao_usada_partida = 0,
+            depoimento_verificado_index_partida = NULL
+        WHERE id_partida = ?`,
+        [JSON.stringify(grafo), JSON.stringify(depoimentos), fofoqueiro, mentiroso, idPartida]
+    );
 
     return{
         nomes: grafo.nodes.map(n => ({ id: n.id, nome: n.nome })),
         depoimentos: depoimentos.map(d => `${d.de} contou algo para ${d.para}`),
-        vidasRestantes: 3
-        ,usouDica: false,
+        vidasRestantes: 3,
+        usouDica: false,
         usouVerificacao: false,
         depoimentoVerificadoIndex: null
     };
@@ -147,24 +143,34 @@ exports.inicializarJogo = async (idPartida, idUsuario, numNodes = 10) => {
  * Obter estado atual do jogo
  */
 exports.obterEstadoJogo = async (idPartida) => {
-    const estado = jogosAtivos.get(idPartida);
-    if (!estado) {
+    const [rows] = await db.query(
+        `SELECT grafo_json_partida, depoimentos_json_partida, fofoqueiro_id_partida, mentiroso_id_partida, 
+                vidas_restantes_partida, score_partida, usou_dica_partida, 
+                verificacao_usada_partida, depoimento_verificado_index_partida
+         FROM partida WHERE id_partida = ? LIMIT 1`,
+        [idPartida]
+    );
+
+    if (!rows || rows.length === 0) {
         throw new Error('Jogo não encontrado');
     }
 
+    const partida = rows[0];
+    const grafo = JSON.parse(partida.grafo_json_partida);
+    const depoimentos = JSON.parse(partida.depoimentos_json_partida);
+
     return {
-        nomes: estado.grafo.nodes.map(n => ({ id: n.id, nome: n.nome })),
-        depoimentos: estado.depoimentos.map(d => `${d.de} contou algo para ${d.para}`),
-        vidasRestantes: estado.vidasRestantes,
-        scoreAtual: estado.scoreAtual,
-        usouDica: estado.usouDica,
-        usouVerificacao: !!estado.usouVerificacao,
-        depoimentoVerificadoIndex: estado.depoimentoVerificadoIndex,
-        depoimentoVerificadoEhMentira: (typeof estado.depoimentoVerificadoIndex === 'number' && estado.depoimentos[estado.depoimentoVerificadoIndex]) ? !!estado.depoimentos[estado.depoimentoVerificadoIndex].ehMentira : null,
-        grafo: estado.usouDica ? {
-            nodes: estado.grafo.nodes,
-            edges: estado.grafo.edges
-        } : null
+        nomes: grafo.nodes.map(n => ({ id: n.id, nome: n.nome })),
+        depoimentos: depoimentos.map(d => `${d.de} contou algo para ${d.para}`),
+        vidasRestantes: partida.vidas_restantes_partida,
+        scoreAtual: partida.score_partida,
+        usouDica: !!partida.usou_dica_partida,
+        usouVerificacao: !!partida.verificacao_usada_partida,
+        depoimentoVerificadoIndex: partida.depoimento_verificado_index_partida,
+        depoimentoVerificadoEhMentira: (typeof partida.depoimento_verificado_index_partida === 'number' && depoimentos[partida.depoimento_verificado_index_partida]) 
+            ? !!depoimentos[partida.depoimento_verificado_index_partida].ehMentira 
+            : null,
+        grafo: partida.usou_dica_partida ? grafo : null
     };
 };
 
@@ -187,7 +193,10 @@ exports.verificarChute = async(req, res) => {
         const userId = rowsUser[0].id_usuario;
 
         const [rowsPartida] = await db.query(
-            'SELECT id_partida, numRodadas_partida, score_partida FROM partida WHERE fk_Usuario_id_usuario = ? AND status_partida = ? LIMIT 1',
+            `SELECT id_partida, grafo_json_partida, depoimentos_json_partida, fofoqueiro_id_partida, 
+                    vidas_restantes_partida, score_partida, usou_dica_partida
+             FROM partida 
+             WHERE fk_Usuario_id_usuario = ? AND status_partida = ? LIMIT 1`,
             [userId, 'em_andamento']
         );
 
@@ -196,33 +205,33 @@ exports.verificarChute = async(req, res) => {
         }
 
         const idPartida = rowsPartida[0].id_partida;
-        const estado = jogosAtivos.get(idPartida);
+        const grafo = JSON.parse(rowsPartida[0].grafo_json_partida);
+        const depoimentos = JSON.parse(rowsPartida[0].depoimentos_json_partida);
+        const fofoqueiro = rowsPartida[0].fofoqueiro_id_partida;
+        const vidasRestantes = rowsPartida[0].vidas_restantes_partida;
+        const scoreAtual = rowsPartida[0].score_partida;
+        const usouDica = !!rowsPartida[0].usou_dica_partida;
 
-        if (!estado) {
-            return res.status(404).json({ message: 'Estado do jogo não encontrado.' });
-        }
-
-        const acertou = parseInt(chuteId) === estado.fofoqueiro;
+        const acertou = parseInt(chuteId) === fofoqueiro;
 
         if (acertou) {
             // Vitória - calcular pontuação baseada em dica
-            const pontos = estado.usouDica ? 1 : 2;
-            estado.scoreAtual += pontos;
+            const pontos = usouDica ? 1 : 2;
+            const novoScore = scoreAtual + pontos;
 
             // Atualizar contadores no banco: incrementar rodada e atualizar score
-            try {
-                await db.query('UPDATE partida SET numRodadas_partida = numRodadas_partida + 1, score_partida = ? WHERE id_partida = ?', [estado.scoreAtual, idPartida]);
-            } catch (errDb) {
-                console.warn('Erro ao atualizar partida após acerto:', errDb.message);
-            }
+            await db.query(
+                'UPDATE partida SET numRodadas_partida = numRodadas_partida + 1, score_partida = ? WHERE id_partida = ?', 
+                [novoScore, idPartida]
+            );
 
             // Preparar próxima rodada: aumentar número de nós em 1, regenerar grafo e depoimentos
             try {
-                const novosNodes = Math.max((estado.grafo && estado.grafo.nodes ? estado.grafo.nodes.length : 0) + 1, 2);
+                const novosNodes = Math.max((grafo.nodes ? grafo.nodes.length : 0) + 1, 2);
 
                 // Gerar novo grafo
-                const m0 = Math.min(3, Math.floor(novosNodes / 3));
-                const m = Math.max(1, Math.min(2, m0));
+                const m0 = Math.max(2, Math.min(3, Math.floor(novosNodes / 2)));
+                const m = Math.max(1, Math.min(2, m0 - 1));
                 const nomesDisponiveis = [...NOMES].sort(() => Math.random() - 0.5);
                 const novoGrafo = graphController.gerarGrafoBarabasiAlbert(novosNodes, m0, m, nomesDisponiveis);
 
@@ -248,74 +257,89 @@ exports.verificarChute = async(req, res) => {
                     }
                 });
 
-                // Atualizar estado em memória
-                estado.grafo = novoGrafo;
-                estado.fofoqueiro = novoFofoqueiro;
-                estado.mentiroso = novoMentiroso;
-                estado.propagacao = novaPropagacao;
-                estado.depoimentos = novosDepoimentos;
+                // Embaralhar depoimentos para randomizar a ordem
+                for (let i = novosDepoimentos.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [novosDepoimentos[i], novosDepoimentos[j]] = [novosDepoimentos[j], novosDepoimentos[i]];
+                }
 
-                // Resetar flags que devem ser por-rodada
-                estado.usouDica = false;
-                estado.usouVerificacao = false;
-                estado.depoimentosVerificados = new Set();
-                estado.depoimentoVerificadoIndex = null;
+                // Atualizar no banco - resetar flags por-rodada
+                await db.query(
+                    `UPDATE partida SET 
+                        grafo_json_partida = ?,
+                        depoimentos_json_partida = ?,
+                        fofoqueiro_id_partida = ?,
+                        mentiroso_id_partida = ?,
+                        usou_dica_partida = 0,
+                        verificacao_usada_partida = 0,
+                        depoimento_verificado_index_partida = NULL
+                    WHERE id_partida = ?`,
+                    [JSON.stringify(novoGrafo), JSON.stringify(novosDepoimentos), novoFofoqueiro, novoMentiroso, idPartida]
+                );
 
-                // Persistir estado completo no banco (inclui reset de verificação)
-                await salvarEstadoJogo(idPartida);
-
-                // Retornar resposta com estado da próxima rodada (não revelamos grafo se não usou dica)
+                // Retornar resposta com estado da próxima rodada
                 return res.status(200).json({
                     acertou: true,
                     nextRound: true,
-                    fofoqueiro: estado.fofoqueiro,
-                    nomeFofoqueiro: estado.grafo.nodes[estado.fofoqueiro].nome,
+                    fofoqueiro: novoFofoqueiro,
+                    nomeFofoqueiro: novoGrafo.nodes[novoFofoqueiro].nome,
                     pontos,
-                    scoreTotal: estado.scoreAtual,
+                    scoreTotal: novoScore,
                     numNodes: novoGrafo.nodes.length,
                     nomes: novoGrafo.nodes.map(n => ({ id: n.id, nome: n.nome })),
-                    depoimentos: estado.depoimentos.map(d => `${d.de} contou algo para ${d.para}`),
-                    vidasRestantes: estado.vidasRestantes,
-                    usouDica: estado.usouDica,
-                    usouVerificacao: estado.usouVerificacao
+                    depoimentos: novosDepoimentos.map(d => `${d.de} contou algo para ${d.para}`),
+                    vidasRestantes: vidasRestantes,
+                    usouDica: false,
+                    usouVerificacao: false
                 });
             } catch (errRound) {
                 console.error('Erro ao iniciar nova rodada:', errRound);
                 // Se falhar ao criar nova rodada, devolver vitória simples e encerrar partida como fallback
                 const gameSectionController = require('./gameSectionController');
-                await gameSectionController.encerrarPartida(idPartida, 'V', estado.scoreAtual);
+                await gameSectionController.encerrarPartida(idPartida, 'V', novoScore);
                 return res.status(200).json({
                     acertou: true,
-                    fofoqueiro: estado.fofoqueiro,
-                    nomeFofoqueiro: estado.grafo.nodes[estado.fofoqueiro].nome,
+                    fofoqueiro: fofoqueiro,
+                    nomeFofoqueiro: grafo.nodes[fofoqueiro].nome,
                     pontos,
-                    scoreTotal: estado.scoreAtual,
+                    scoreTotal: novoScore,
                     message: `Parabéns! Você descobriu o fofoqueiro e ganhou ${pontos} ponto(s)!` 
                 });
             }
         } else {
             // Errou - perde vida
-            estado.vidasRestantes--;
+            const novasVidas = vidasRestantes - 1;
 
-            if (estado.vidasRestantes <= 0) {
+            if (novasVidas <= 0) {
                 // Derrota - encerrar partida
+                await db.query(
+                    'UPDATE partida SET vidas_restantes_partida = 0 WHERE id_partida = ?',
+                    [idPartida]
+                );
+                
                 const gameSectionController = require('./gameSectionController');
                 await gameSectionController.encerrarPartida(idPartida, 'D', 0);
 
                 return res.status(200).json({
                     acertou: false,
                     gameOver: true,
-                    fofoqueiro: estado.fofoqueiro,
-                    nomeFofoqueiro: estado.grafo.nodes[estado.fofoqueiro].nome,
+                    fofoqueiro: fofoqueiro,
+                    nomeFofoqueiro: grafo.nodes[fofoqueiro].nome,
                     message: 'Game Over! Você perdeu todas as vidas.'
                 });
             }
 
+            // Atualizar vidas no banco
+            await db.query(
+                'UPDATE partida SET vidas_restantes_partida = ? WHERE id_partida = ?',
+                [novasVidas, idPartida]
+            );
+
             return res.status(200).json({
                 acertou: false,
                 gameOver: false,
-                vidasRestantes: estado.vidasRestantes,
-                message: `Errado! Você ainda tem ${estado.vidasRestantes} vida(s).`
+                vidasRestantes: novasVidas,
+                message: `Errado! Você ainda tem ${novasVidas} vida(s).`
             });
         }
     } catch (err) {
@@ -338,7 +362,9 @@ exports.solicitarDica = async (req, res) => {
         const userId = rowsUser[0].id_usuario;
 
         const [rowsPartida] = await db.query(
-            'SELECT id_partida FROM partida WHERE fk_Usuario_id_usuario = ? AND status_partida = ? LIMIT 1',
+            `SELECT id_partida, grafo_json_partida, usou_dica_partida 
+             FROM partida 
+             WHERE fk_Usuario_id_usuario = ? AND status_partida = ? LIMIT 1`,
             [userId, 'em_andamento']
         );
 
@@ -347,24 +373,21 @@ exports.solicitarDica = async (req, res) => {
         }
 
         const idPartida = rowsPartida[0].id_partida;
-        const estado = jogosAtivos.get(idPartida);
+        const usouDica = !!rowsPartida[0].usou_dica_partida;
+        const grafo = JSON.parse(rowsPartida[0].grafo_json_partida);
 
-        if (!estado) {
-            return res.status(404).json({ message: 'Estado do jogo não encontrado.' });
-        }
-
-        if (estado.usouDica) {
+        if (usouDica) {
             return res.status(400).json({ message: 'Você já usou a dica nesta partida.' });
         }
 
-        // Marca que usou dica
-        estado.usouDica = true;
+        // Marca que usou dica no banco
+        await db.query('UPDATE partida SET usou_dica_partida = 1 WHERE id_partida = ?', [idPartida]);
 
         return res.status(200).json({
             message: 'Dica revelada! Pontuação reduzida para 1 ponto.',
             grafo: {
-                nodes: estado.grafo.nodes,
-                edges: estado.grafo.edges
+                nodes: grafo.nodes,
+                edges: grafo.edges
             }
         });
     } catch (err) {
@@ -392,7 +415,9 @@ exports.verificarDepoimento = async (req, res) => {
         const userId = rowsUser[0].id_usuario;
 
         const [rowsPartida] = await db.query(
-            'SELECT id_partida FROM partida WHERE fk_Usuario_id_usuario = ? AND status_partida = ? LIMIT 1',
+            `SELECT id_partida, depoimentos_json_partida, verificacao_usada_partida 
+             FROM partida 
+             WHERE fk_Usuario_id_usuario = ? AND status_partida = ? LIMIT 1`,
             [userId, 'em_andamento']
         );
 
@@ -401,29 +426,24 @@ exports.verificarDepoimento = async (req, res) => {
         }
 
         const idPartida = rowsPartida[0].id_partida;
-        const estado = jogosAtivos.get(idPartida);
-
-        if (!estado) {
-            return res.status(404).json({ message: 'Estado do jogo não encontrado.' });
-        }
+        const usouVerificacao = !!rowsPartida[0].verificacao_usada_partida;
+        const depoimentos = JSON.parse(rowsPartida[0].depoimentos_json_partida);
 
         // Permitir apenas UMA verificação por partida
-        if (estado.usouVerificacao) {
+        if (usouVerificacao) {
             return res.status(400).json({ message: 'Você já usou a verificação nesta partida.' });
         }
 
-        const depoimento = estado.depoimentos[depoimentoIndex];
+        const depoimento = depoimentos[depoimentoIndex];
         if (!depoimento) {
             return res.status(404).json({ message: 'Depoimento não encontrado.' });
         }
 
         // Marcar que a verificação foi usada nesta partida e registrar índice
-        estado.usouVerificacao = true;
-        estado.depoimentosVerificados.add(depoimentoIndex);
-        estado.depoimentoVerificadoIndex = depoimentoIndex;
-
-        // Persistir estado completo no banco (inclui verificação)
-        await salvarEstadoJogo(idPartida);
+        await db.query(
+            'UPDATE partida SET verificacao_usada_partida = 1, depoimento_verificado_index_partida = ? WHERE id_partida = ?',
+            [depoimentoIndex, idPartida]
+        );
 
         return res.status(200).json({
             depoimento: `${depoimento.de} contou algo para ${depoimento.para}`,
@@ -436,113 +456,4 @@ exports.verificarDepoimento = async (req, res) => {
         console.error('Erro ao verificar depoimento:', err);
         return res.status(500).json({ message: 'Erro ao verificar depoimento.' });
     }
-};
-
-/**
- * Salvar estado completo do jogo no banco de dados
- */
-async function salvarEstadoJogo(idPartida) {
-    const estado = jogosAtivos.get(idPartida);
-    if (!estado) return;
-
-    try {
-        // Converter Sets para Arrays para serialização JSON
-        const estadoSerializavel = {
-            grafo: estado.grafo,
-            fofoqueiro: estado.fofoqueiro,
-            mentiroso: estado.mentiroso,
-            propagacao: estado.propagacao,
-            depoimentos: estado.depoimentos,
-            vidasRestantes: estado.vidasRestantes,
-            scoreAtual: estado.scoreAtual,
-            usouDica: estado.usouDica,
-            depoimentosVerificados: Array.from(estado.depoimentosVerificados || []),
-            usouVerificacao: estado.usouVerificacao,
-            depoimentoVerificadoIndex: estado.depoimentoVerificadoIndex
-        };
-
-        await db.query(
-            'UPDATE partida SET estado_jogo_json = ?, score_partida = ?, verificacao_usada_partida = ?, depoimento_verificado_index_partida = ? WHERE id_partida = ?',
-            [JSON.stringify(estadoSerializavel), estado.scoreAtual, estado.usouVerificacao ? 1 : 0, estado.depoimentoVerificadoIndex, idPartida]
-        );
-    } catch (err) {
-        console.error('Erro ao salvar estado do jogo:', err);
-    }
-}
-
-/**
- * Carregar estado completo do jogo do banco de dados
- */
-async function carregarEstadoJogo(idPartida) {
-    try {
-        const [rows] = await db.query(
-            'SELECT estado_jogo_json FROM partida WHERE id_partida = ? LIMIT 1',
-            [idPartida]
-        );
-
-        if (!rows || rows.length === 0 || !rows[0].estado_jogo_json){
-            return null;
-        }
-
-        const estadoDb = JSON.parse(rows[0].estado_jogo_json);
-        
-        // Reconstruir Sets a partir de Arrays
-        const estado = {
-            idPartida,
-            grafo: estadoDb.grafo,
-            fofoqueiro: estadoDb.fofoqueiro,
-            mentiroso: estadoDb.mentiroso,
-            propagacao: estadoDb.propagacao,
-            depoimentos: estadoDb.depoimentos,
-            vidasRestantes: estadoDb.vidasRestantes,
-            scoreAtual: estadoDb.scoreAtual,
-            usouDica: estadoDb.usouDica,
-            depoimentosVerificados: new Set(estadoDb.depoimentosVerificados || []),
-            usouVerificacao: estadoDb.usouVerificacao,
-            depoimentoVerificadoIndex: estadoDb.depoimentoVerificadoIndex
-        };
-
-        jogosAtivos.set(idPartida, estado);
-        return estado;
-    } catch (err) {
-        console.error('Erro ao carregar estado do jogo:', err);
-        return null;
-    }
-}
-
-/**
- * Limpar estado do jogo da memória
- */
-exports.limparEstadoJogo = (idPartida) => {
-    jogosAtivos.delete(idPartida);
-};
-
-/**
- * Carregar estado do jogo do banco (exportado para uso externo)
- */
-exports.carregarEstadoJogo = carregarEstadoJogo;
-
-/**
- * Aplica flags persistidas (do banco) no estado em memória de uma partida reconstituída.
- * Usado quando a entrada no DB existe mas o jogo em memória foi perdido (ex.: restart do servidor).
- * @param {number} idPartida
- * @param {object} opts - { usouVerificacao?: boolean, depoimentoVerificadoIndex?: number|null }
- * @returns {boolean} true se estado em memória foi encontrado e atualizado, false caso contrário
- */
-exports.aplicarPersistencia = (idPartida, opts = {}) => {
-    const estado = jogosAtivos.get(idPartida);
-    if (!estado) return false;
-
-    if (typeof opts.usouVerificacao !== 'undefined') {
-        estado.usouVerificacao = !!opts.usouVerificacao;
-    }
-
-    if (typeof opts.depoimentoVerificadoIndex !== 'undefined') {
-        estado.depoimentoVerificadoIndex = opts.depoimentoVerificadoIndex;
-        if (opts.depoimentoVerificadoIndex !== null && opts.depoimentoVerificadoIndex !== undefined) {
-            estado.depoimentosVerificados.add(opts.depoimentoVerificadoIndex);
-        }
-    }
-
-    return true;
 };

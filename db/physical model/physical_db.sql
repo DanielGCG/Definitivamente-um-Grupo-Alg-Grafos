@@ -18,7 +18,12 @@ CREATE TABLE Partida (
     data_criacao_partida TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     verificacao_usada_partida TINYINT(1) DEFAULT 0,
     depoimento_verificado_index_partida INTEGER DEFAULT NULL,
-    grafo_partida VARCHAR(5000),
+    grafo_json_partida TEXT,
+    depoimentos_json_partida TEXT,
+    fofoqueiro_id_partida INTEGER,
+    mentiroso_id_partida INTEGER,
+    vidas_restantes_partida INTEGER DEFAULT 3,
+    usou_dica_partida TINYINT(1) DEFAULT 0,
     fk_Usuario_id_usuario INTEGER
 );
 

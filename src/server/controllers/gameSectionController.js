@@ -15,58 +15,42 @@ exports.joinGameSection = async (req, res) => {
 
         // Verifica se já existe uma partida em andamento para este usuário
         const [rowsPartida] = await db.query(
-            'SELECT id_partida, numRodadas_partida, verificacao_usada_partida, depoimento_verificado_index_partida FROM partida WHERE fk_Usuario_id_usuario = ? AND status_partida = ? LIMIT 1',
+            `SELECT id_partida, numRodadas_partida, grafo_json_partida, depoimentos_json_partida, 
+                    fofoqueiro_id_partida, vidas_restantes_partida, score_partida, usou_dica_partida,
+                    verificacao_usada_partida, depoimento_verificado_index_partida
+             FROM partida 
+             WHERE fk_Usuario_id_usuario = ? AND status_partida = ? LIMIT 1`,
             [userId, 'em_andamento']
         );
         
         // Se já existir uma partida em andamento, retorna a partida existente com grafo
         if (rowsPartida && rowsPartida.length > 0) {
             const idPartida = rowsPartida[0].id_partida;
-            try {
-                const estadoJogo = await gameLogicController.obterEstadoJogo(idPartida);
+            
+            // Verificar se o grafo existe, caso contrário a partida está corrompida
+            if (!rowsPartida[0].grafo_json_partida || !rowsPartida[0].depoimentos_json_partida) {
+                // Deletar partida corrompida e criar uma nova
+                await db.query('DELETE FROM partida WHERE id_partida = ?', [idPartida]);
+                console.log(`Partida ${idPartida} estava corrompida, recriando...`);
+            } else {
+                const grafo = JSON.parse(rowsPartida[0].grafo_json_partida);
+                const depoimentos = JSON.parse(rowsPartida[0].depoimentos_json_partida);
 
                 return res.status(200).json({ 
                     message: 'Partida em andamento já existe.', 
                     id_partida: idPartida,
                     isNew: false,
-                    nomes: estadoJogo.nomes,
-                    depoimentos: estadoJogo.depoimentos,
-                    vidasRestantes: estadoJogo.vidasRestantes,
-                    grafo: estadoJogo.grafo,
-                    usouDica: estadoJogo.usouDica,
-                    usouVerificacao: estadoJogo.usouVerificacao,
-                    depoimentoVerificadoIndex: estadoJogo.depoimentoVerificadoIndex,
-                    depoimentoVerificadoEhMentira: estadoJogo.depoimentoVerificadoEhMentira
-                });
-            } catch (err) {
-                // Estado em memória perdido - tentar restaurar do banco de dados
-                console.warn('Estado da partida não encontrado na memória, restaurando do banco:', err.message);
-
-                // Tentar carregar estado completo do banco
-                const estadoCarregado = await gameLogicController.carregarEstadoJogo(idPartida);
-
-                if (!estadoCarregado) {
-                    // Se não há estado salvo no banco, criar novo jogo como fallback
-                    console.warn('Nenhum estado salvo encontrado no banco, recriando partida');
-                    const numRodadas = rowsPartida[0].numRodadas_partida || 0;
-                    const numNodes = 10 + numRodadas;
-                    await gameLogicController.inicializarJogo(idPartida, numNodes);
-                }
-
-                // Retornar o estado restaurado ao cliente
-                const estadoJogo = await gameLogicController.obterEstadoJogo(idPartida);
-                return res.status(200).json({ 
-                    message: 'Partida reconstituída com sucesso.', 
-                    id_partida: idPartida,
-                    isNew: false,
-                    nomes: estadoJogo.nomes,
-                    depoimentos: estadoJogo.depoimentos,
-                    vidasRestantes: estadoJogo.vidasRestantes,
-                    grafo: estadoJogo.grafo,
-                    usouDica: estadoJogo.usouDica,
-                    usouVerificacao: estadoJogo.usouVerificacao,
-                    depoimentoVerificadoIndex: estadoJogo.depoimentoVerificadoIndex,
-                    depoimentoVerificadoEhMentira: estadoJogo.depoimentoVerificadoEhMentira
+                    nomes: grafo.nodes.map(n => ({ id: n.id, nome: n.nome })),
+                    depoimentos: depoimentos.map(d => `${d.de} contou algo para ${d.para}`),
+                    vidasRestantes: rowsPartida[0].vidas_restantes_partida,
+                    grafo: rowsPartida[0].usou_dica_partida ? grafo : null,
+                    usouDica: !!rowsPartida[0].usou_dica_partida,
+                    usouVerificacao: !!rowsPartida[0].verificacao_usada_partida,
+                    depoimentoVerificadoIndex: rowsPartida[0].depoimento_verificado_index_partida,
+                    depoimentoVerificadoEhMentira: (typeof rowsPartida[0].depoimento_verificado_index_partida === 'number' && depoimentos[rowsPartida[0].depoimento_verificado_index_partida]) 
+                        ? !!depoimentos[rowsPartida[0].depoimento_verificado_index_partida].ehMentira 
+                        : null,
+                    scoreAtual: rowsPartida[0].score_partida
                 });
             }
         }
@@ -80,8 +64,8 @@ exports.joinGameSection = async (req, res) => {
         const idPartida = result.insertId;
 
         // Gerar grafo para a nova partida
-        const numNodes = parseInt(req.body.numNodes) || 10;
-        const estadoJogo = await gameLogicController.inicializarJogo(idPartida, numNodes);
+        const numNodes = 6;
+        const estadoJogo = await gameLogicController.inicializarJogo(idPartida, userId, numNodes);
 
         return res.status(201).json({
             message: 'Partida criada com sucesso.',
@@ -89,8 +73,8 @@ exports.joinGameSection = async (req, res) => {
             isNew: true,
             nomes: estadoJogo.nomes,
             depoimentos: estadoJogo.depoimentos,
-            vidasRestantes: estadoJogo.vidasRestantes
-            ,usouVerificacao: estadoJogo.usouVerificacao,
+            vidasRestantes: estadoJogo.vidasRestantes,
+            usouVerificacao: estadoJogo.usouVerificacao,
             depoimentoVerificadoIndex: estadoJogo.depoimentoVerificadoIndex,
             depoimentoVerificadoEhMentira: null
         });
@@ -125,9 +109,6 @@ exports.leaveGameSection = async (req, res) => {
 
         // Deletar a partida
         await db.query('DELETE FROM partida WHERE id_partida = ?', [idPartida]);
-        
-        // Limpar dados do jogo da memória
-        gameLogicController.limparEstadoJogo(idPartida);
 
         return res.status(200).json({
             message: 'Partida deletada com sucesso.',
@@ -153,9 +134,6 @@ exports.encerrarPartida = async (idPartida, resultado, scoreFinal) => {
                 [scoreFinal, idPartida]
             );
         }
-        
-        // Limpar estado do jogo
-        gameLogicController.limparEstadoJogo(idPartida);
         
         return { success: true };
     } catch (err) {

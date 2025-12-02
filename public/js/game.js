@@ -603,6 +603,9 @@ async function chutar(nodeId) {
                 // Reset frontend verification state for the new round
                 GameState.reset();
                 GameState.setPartida(partida);
+                
+                // Limpar marcações de vértices e arestas do usuário
+                GraphState.reset();
 
                 // Re-render UI
                 updateHeader(partida);

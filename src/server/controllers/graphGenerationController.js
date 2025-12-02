@@ -1,12 +1,3 @@
-/**
- * Gera um grafo usando o modelo Barabási-Albert (Preferential Attachment)
- * @param {number} numNos - Número total de nós
- * @param {number} numNosIniciais - Número de nós iniciais completamente conectados (default: 3)
- * @param {number} numArestasPorNovoNo - Número de arestas por novo nó
- * @param {array} listaDeNomesParaOsNos - Lista opcional de nomes para os nós
- * @returns {object} - Grafo com nós e arestas
- */
-
 exports.gerarGrafoBarabasiAlbert = function (
     numNos,
     numNosIniciais,
