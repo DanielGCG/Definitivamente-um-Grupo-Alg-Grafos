@@ -363,11 +363,11 @@ function renderNodes(g, nodes) {
         .attr('stroke-width', 2);
 
     GraphState.svgElements.nodeElements.append('text')
-        .text(d => d.nome[0])
+        .text(d => d.nome.substring(0, 2))
         .attr('x', 0)
         .attr('y', 5)
         .attr('text-anchor', 'middle')
-        .attr('font-size', '14px')
+        .attr('font-size', '12px')
         .attr('fill', '#fff')
         .attr('pointer-events', 'none');
 
@@ -519,7 +519,7 @@ function positionPopup(popup, event) {
 function fillPopupContent(popup, node) {
     const partidaAtual = GameState.getPartida();
     const depoimentoTexto = findDepoimentoForNode(node.nome, partidaAtual.depoimentos);
-    const depoimentoIndex = partidaAtual.depoimentos.findIndex(dep => dep.includes(node.nome));
+    const depoimentoIndex = partidaAtual.depoimentos.findIndex(dep => dep.startsWith(node.nome + ':'));
     const jaVerificado = GameState.isDepoimentoVerificado(depoimentoIndex);
 
     popup.innerHTML = `
@@ -538,7 +538,7 @@ function fillPopupContent(popup, node) {
 }
 
 function findDepoimentoForNode(nome, depoimentos) {
-    return depoimentos.find(dep => dep.includes(nome)) || 'Sem depoimento';
+    return depoimentos.find(dep => dep.startsWith(nome + ':')) || 'Sem depoimento';
 }
 
 function createVerificationButton(index, isVerified) {

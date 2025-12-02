@@ -90,8 +90,8 @@ exports.inicializarJogo = async (idPartida, idUsuario, numNodes = 6) => {
             const outrosNodes = grafo.nodes.filter(n => n.id !== node.id);
             const mentira = outrosNodes[Math.floor(Math.random() * outrosNodes.length)];
             depoimentos.push({
-                de: mentira.nome,
-                para: node.nome,
+                quemOuviu: node.nome,
+                deQuem: mentira.nome,
                 ehMentira: true
             });
         } else {
@@ -99,8 +99,8 @@ exports.inicializarJogo = async (idPartida, idUsuario, numNodes = 6) => {
             const origem = propagacao.find(p => p.nivel === node.nivel - 1 && p.id !== node.id);
             if (origem) {
                 depoimentos.push({
-                    de: origem.nome,
-                    para: node.nome,
+                    quemOuviu: node.nome,
+                    deQuem: origem.nome,
                     ehMentira: false
                 });
             }
@@ -131,7 +131,7 @@ exports.inicializarJogo = async (idPartida, idUsuario, numNodes = 6) => {
 
     return{
         nomes: grafo.nodes.map(n => ({ id: n.id, nome: n.nome })),
-        depoimentos: depoimentos.map(d => `${d.de} contou algo para ${d.para}`),
+        depoimentos: depoimentos.map(d => `${d.quemOuviu}: ouvi de ${d.deQuem}`),
         vidasRestantes: 3,
         usouDica: false,
         usouVerificacao: false,
@@ -161,7 +161,7 @@ exports.obterEstadoJogo = async (idPartida) => {
 
     return {
         nomes: grafo.nodes.map(n => ({ id: n.id, nome: n.nome })),
-        depoimentos: depoimentos.map(d => `${d.de} contou algo para ${d.para}`),
+        depoimentos: depoimentos.map(d => `${d.quemOuviu}: ouvi de ${d.deQuem}`),
         vidasRestantes: partida.vidas_restantes_partida,
         scoreAtual: partida.score_partida,
         usouDica: !!partida.usou_dica_partida,
@@ -250,10 +250,10 @@ exports.verificarChute = async(req, res) => {
                     if (node.nivel === 0) {
                         const outrosNodes = novoGrafo.nodes.filter(n => n.id !== node.id);
                         const mentira = outrosNodes[Math.floor(Math.random() * outrosNodes.length)];
-                        novosDepoimentos.push({ de: mentira.nome, para: node.nome, ehMentira: true });
+                        novosDepoimentos.push({ quemOuviu: node.nome, deQuem: mentira.nome, ehMentira: true });
                     } else {
                         const origem = novaPropagacao.find(p => p.nivel === node.nivel - 1 && p.id !== node.id);
-                        if (origem) novosDepoimentos.push({ de: origem.nome, para: node.nome, ehMentira: false });
+                        if (origem) novosDepoimentos.push({ quemOuviu: node.nome, deQuem: origem.nome, ehMentira: false });
                     }
                 });
 
@@ -287,7 +287,7 @@ exports.verificarChute = async(req, res) => {
                     scoreTotal: novoScore,
                     numNodes: novoGrafo.nodes.length,
                     nomes: novoGrafo.nodes.map(n => ({ id: n.id, nome: n.nome })),
-                    depoimentos: novosDepoimentos.map(d => `${d.de} contou algo para ${d.para}`),
+                    depoimentos: novosDepoimentos.map(d => `${d.quemOuviu}: ouvi de ${d.deQuem}`),
                     vidasRestantes: vidasRestantes,
                     usouDica: false,
                     usouVerificacao: false
@@ -446,7 +446,7 @@ exports.verificarDepoimento = async (req, res) => {
         );
 
         return res.status(200).json({
-            depoimento: `${depoimento.de} contou algo para ${depoimento.para}`,
+            depoimento: `${depoimento.quemOuviu}: ouvi de ${depoimento.deQuem}`,
             ehMentira: depoimento.ehMentira,
             message: depoimento.ehMentira ? 'Este depoimento é MENTIRA!' : 'Este depoimento é VERDADE!',
             usadoVerificacao: true,
