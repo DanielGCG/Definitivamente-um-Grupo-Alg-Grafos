@@ -126,14 +126,24 @@
         transition: all 0.2s ease;
     }
     .graph-svg circle:hover { 
-        stroke-width: 3;
+        stroke-width: 4;
         filter: brightness(1.1);
+        cursor: pointer;
     }
-    .graph-svg text { 
-        font-size: 0.75rem; 
+    .graph-svg .node-label {
+        font-size: 0.75rem;
         font-weight: bold;
-        fill: #fff; 
-        text-anchor: middle; 
+        fill: #333;
+        text-anchor: middle;
+        pointer-events: none;
+        user-select: none;
+        text-shadow: 0 0 3px white, 0 0 3px white;
+    }
+    .graph-svg .node-initials {
+        font-size: 0.9rem;
+        font-weight: bold;
+        fill: #fff;
+        text-anchor: middle;
         pointer-events: none;
         user-select: none;
     }

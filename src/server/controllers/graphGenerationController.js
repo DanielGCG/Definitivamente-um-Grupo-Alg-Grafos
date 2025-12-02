@@ -2,7 +2,7 @@ exports.gerarGrafoBarabasiAlbert = function (
     numNos,
     numNosIniciais,
     numArestasPorNovoNo,
-    listaDeNomesParaOsNos
+    listaPersonagens // Array de { nome, foto }
 ){
     if(numNosIniciais < 1 || numNosIniciais >= numNos){
         throw new Error("numNosIniciais deve ser >= 1 e menor que numNos.");
@@ -16,16 +16,18 @@ exports.gerarGrafoBarabasiAlbert = function (
 
 
     for(let i = 0; i < numNos; i++){
-        let nome;
+        let nome, foto;
 
-        if(listaDeNomesParaOsNos && i < listaDeNomesParaOsNos.length){
-            nome = listaDeNomesParaOsNos[i];
+        if(listaPersonagens && i < listaPersonagens.length){
+            nome = listaPersonagens[i].nome;
+            foto = listaPersonagens[i].foto;
         } 
         else{
             nome = "No_" + i;
+            foto = null;
         }
 
-        nodes.push({ id: i, nome });
+        nodes.push({ id: i, nome, foto });
     }
 
 

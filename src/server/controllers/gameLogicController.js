@@ -70,17 +70,65 @@ function propagarFofoca(grafo, fofoqueiro, mentiroso) {
  * Inicializa um novo jogo para uma partida
  */
 exports.inicializarJogo = async (idPartida, idUsuario, numNodes = 6) => {
-    // Lista de nomes embaralhados
-    const [amigos] = await db.query('SELECT u.nome_usuario FROM usuario u JOIN amizade a1 ON a1.fk_Usuario_id_usuario = ? AND a1.fk_Usuario_id_usuario_ = u.id_usuario JOIN amizade a2 ON a2.fk_Usuario_id_usuario = u.id_usuario AND a2.fk_Usuario_id_usuario_ = ?', [idUsuario, idUsuario]);
-    const nomesAmigos = amigos.map(a => a.nome_usuario);
-    const nomesDisponiveis = [...NOMES].sort(() => Math.random() - 0.5);
+    // 1. Buscar amigos do usuário (com fotos) - apenas amizades recíprocas
+    const [amigos] = await db.query(
+        `SELECT u.id_usuario, u.nome_usuario, u.foto_usuario
+         FROM Amizade a1
+         JOIN Amizade a2 
+             ON a1.fk_Usuario_id_usuario = a2.fk_Usuario_id_usuario_
+            AND a1.fk_Usuario_id_usuario_ = a2.fk_Usuario_id_usuario
+         JOIN usuario u ON u.id_usuario = a1.fk_Usuario_id_usuario_
+         WHERE a1.fk_Usuario_id_usuario = ?
+         ORDER BY RAND()
+         LIMIT ?`,
+        [idUsuario, numNodes]
+    );
     
-    let nomes = nomesAmigos.concat(nomesDisponiveis);
+    const personagens = amigos.map(a => ({
+        id: a.id_usuario,
+        nome: a.nome_usuario,
+        foto: a.foto_usuario
+    }));
+
+    // 2. Se precisar de mais nós, buscar usuários aleatórios (excluindo amigos já selecionados e o próprio usuário)
+    if (personagens.length < numNodes) {
+        const idsExcluir = [idUsuario, ...personagens.map(p => p.id)];
+        const placeholders = idsExcluir.map(() => '?').join(',');
+        const falta = numNodes - personagens.length;
+        
+        const [usuariosAleatorios] = await db.query(
+            `SELECT nome_usuario, foto_usuario
+             FROM usuario
+             WHERE id_usuario NOT IN (${placeholders})
+             ORDER BY RAND()
+             LIMIT ?`,
+            [...idsExcluir, falta]
+        );
+        
+        usuariosAleatorios.forEach(u => {
+            personagens.push({
+                nome: u.nome_usuario,
+                foto: u.foto_usuario
+            });
+        });
+    }
+
+    // 3. Se ainda precisar, usar nomes genéricos
+    const nomesGenericos = [...NOMES].sort(() => Math.random() - 0.5);
+    let nomeGenIndex = 0;
+    while (personagens.length < numNodes) {
+        const nomeGenerico = nomesGenericos[nomeGenIndex] || `Pessoa_${personagens.length}`;
+        nomeGenIndex++;
+        personagens.push({
+            nome: nomeGenerico,
+            foto: '/img/usuario.png' // Foto placeholder para nomes genéricos
+        });
+    }
 
     // Gerar grafo usando função centralizada
     const m0 = Math.max(2, Math.min(3, Math.floor(numNodes / 2)));
     const m = Math.max(1, Math.min(2, m0 - 1));
-    const grafo = graphController.gerarGrafoBarabasiAlbert(numNodes, m0, m, nomes, numNodes);
+    const grafo = graphController.gerarGrafoBarabasiAlbert(numNodes, m0, m, personagens);
 
     // Escolher fofoqueiro aleatório
     const fofoqueiro = Math.floor(Math.random() * grafo.nodes.length);
@@ -143,7 +191,7 @@ exports.inicializarJogo = async (idPartida, idUsuario, numNodes = 6) => {
     );
 
     return{
-        nomes: grafo.nodes.map(n => ({ id: n.id, nome: n.nome })),
+        nomes: grafo.nodes.map(n => ({ id: n.id, nome: n.nome, foto: n.foto })),
         depoimentos: depoimentos.map(d => `${d.quemOuviu}: ouvi de ${d.deQuem}`),
         vidasRestantes: 3,
         usouDica: false,
@@ -173,7 +221,7 @@ exports.obterEstadoJogo = async (idPartida) => {
     const depoimentos = JSON.parse(partida.depoimentos_json_partida);
 
     return {
-        nomes: grafo.nodes.map(n => ({ id: n.id, nome: n.nome })),
+        nomes: grafo.nodes.map(n => ({ id: n.id, nome: n.nome, foto: n.foto })),
         depoimentos: depoimentos.map(d => `${d.quemOuviu}: ouvi de ${d.deQuem}`),
         vidasRestantes: partida.vidas_restantes_partida,
         scoreAtual: partida.score_partida,

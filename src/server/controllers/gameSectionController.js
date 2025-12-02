@@ -40,7 +40,7 @@ exports.joinGameSection = async (req, res) => {
                     message: 'Partida em andamento já existe.', 
                     id_partida: idPartida,
                     isNew: false,
-                    nomes: grafo.nodes.map(n => ({ id: n.id, nome: n.nome })),
+                    nomes: grafo.nodes.map(n => ({ id: n.id, nome: n.nome, foto: n.foto })),
                     depoimentos: depoimentos.map(d => `${d.quemOuviu}: ouvi de ${d.deQuem}`),
                     vidasRestantes: rowsPartida[0].vidas_restantes_partida,
                     grafo: rowsPartida[0].usou_dica_partida ? grafo : null,

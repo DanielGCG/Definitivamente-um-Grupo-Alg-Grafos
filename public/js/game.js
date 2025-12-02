@@ -258,6 +258,7 @@ function renderGraph(data) {
     const dimensions = calculateGraphDimensions(svg);
     svg.attr('viewBox', `0 0 ${dimensions.width} ${dimensions.height}`);
 
+    console.log('data.nomes recebido:', data.nomes);
     const nodes = prepareNodes(data.nomes || [], dimensions);
     const links = prepareLinks(data);
     
@@ -289,6 +290,7 @@ function prepareNodes(nomes, dimensions) {
     return nomes.map(pessoa => ({
         id: pessoa.id,
         nome: pessoa.nome,
+        foto: pessoa.foto,
         x: dimensions.centerX + Math.cos((2 * Math.PI * pessoa.id) / nomes.length) * dimensions.radius,
         y: dimensions.centerY + Math.sin((2 * Math.PI * pessoa.id) / nomes.length) * dimensions.radius
     }));
@@ -342,6 +344,8 @@ function renderUserLinksContainer(g) {
 }
 
 function renderNodes(g, nodes) {
+    const nodeRadius = 25;
+    
     GraphState.svgElements.nodeElements = g.selectAll('g.node')
         .data(nodes)
         .join('g')
@@ -353,20 +357,53 @@ function renderNodes(g, nodes) {
             .on('drag', dragged)
             .on('end', dragEnded));
 
-    GraphState.svgElements.nodeElements.append('circle')
-        .attr('r', 20)
-        .attr('fill', '#6fa8dc')
-        .attr('stroke', '#fff')
-        .attr('stroke-width', 2);
+    // Criar defs para padrões de imagem, se necessário
+    let defs = d3.select('#grafoSVG').select('defs');
+    if (defs.empty()) {
+        defs = d3.select('#grafoSVG').append('defs');
+    }
 
-    GraphState.svgElements.nodeElements.append('text')
-        .text(d => d.nome.substring(0, 2))
-        .attr('x', 0)
-        .attr('y', 5)
-        .attr('text-anchor', 'middle')
-        .attr('font-size', '12px')
-        .attr('fill', '#fff')
-        .attr('pointer-events', 'none');
+    // Renderizar cada nó com foto de perfil
+    GraphState.svgElements.nodeElements.each(function(d) {
+        const node = d3.select(this);
+        
+        // Criar padrão de imagem circular
+        const patternId = `profile-${d.id}`;
+        
+        // Remover padrão existente se houver
+        defs.select(`#${patternId}`).remove();
+        
+        const pattern = defs.append('pattern')
+            .attr('id', patternId)
+            .attr('width', 1)
+            .attr('height', 1)
+            .attr('patternContentUnits', 'objectBoundingBox');
+        
+        pattern.append('image')
+            .attr('href', d.foto || '/img/usuario.png')
+            .attr('width', 1)
+            .attr('height', 1)
+            .attr('preserveAspectRatio', 'xMidYMid slice');
+        
+        // Círculo com imagem de fundo
+        node.append('circle')
+            .attr('r', nodeRadius)
+            .style('fill', `url(#${patternId})`)
+            .style('stroke', '#a1a1a1ff')
+            .style('stroke-width', 3);
+        
+        // Nome abaixo do nó (para todos os nós)
+        node.append('text')
+            .text(d.nome)
+            .attr('x', 0)
+            .attr('y', nodeRadius + 18)
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '12px')
+            .attr('font-weight', 'bold')
+            .attr('fill', '#000')
+            .attr('pointer-events', 'none')
+            .style('text-shadow', '1px 1px 2px white, -1px -1px 2px white, 1px -1px 2px white, -1px 1px 2px white')
+    });
 
     // Garantir que marcas visuais estejam corretas após renderizar nós
     updateNodeMarkers();
@@ -485,15 +522,12 @@ function updateNodeMarkers() {
     // Adiciona/removes classe ao grupo para permitir estilização via CSS
     nodeElements.classed('marked', d => GraphState.verticesMarcados.has(d.id));
 
-    // Torna a indicação visual mais perceptível: muda preenchimento, borda, raio e cor do texto
+    // Torna a indicação visual mais perceptível: muda borda e raio do círculo
     nodeElements.selectAll('circle')
-        .attr('fill', d => GraphState.verticesMarcados.has(d.id) ? '#ffeb3b' : '#6fa8dc')
-        .attr('stroke', d => GraphState.verticesMarcados.has(d.id) ? '#b58000' : '#fff')
-        .attr('stroke-width', d => GraphState.verticesMarcados.has(d.id) ? 3 : 2)
-        .attr('r', d => GraphState.verticesMarcados.has(d.id) ? 24 : 20);
+        .style('stroke', d => GraphState.verticesMarcados.has(d.id) ? '#ff0000' : '#a1a1a1ff')
+        .style('stroke-width', d => GraphState.verticesMarcados.has(d.id) ? '5px' : '3px');
 
-    nodeElements.selectAll('text')
-        .attr('fill', d => GraphState.verticesMarcados.has(d.id) ? '#111' : '#fff');
+    // Não alterar cor do texto - mantém sempre preto
 }
 
 // ============================================================================
