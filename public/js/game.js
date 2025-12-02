@@ -307,10 +307,7 @@ function prepareLinks(data) {
 function setupSVGMarkers(svg) {
     const defs = svg.append('defs');
     
-    // Seta para arestas reais (azul)
-    createArrowMarker(defs, 'arrowhead-real', '#888');
-    
-    // Seta para arestas do usuário (verde)
+    // Seta apenas para arestas do usuário (verde) - grafo original é não-direcionado
     createArrowMarker(defs, 'arrowhead-user', '#4CAF50');
 }
 
@@ -335,8 +332,8 @@ function renderLinks(g, links) {
             .join('line')
             .attr('class', 'link-real')
             .attr('stroke', '#888')
-            .attr('stroke-width', 2)
-            .attr('marker-end', 'url(#arrowhead-real)');
+            .attr('stroke-width', 2);
+            // Sem marker-end: grafo é não-direcionado
     }
 }
 

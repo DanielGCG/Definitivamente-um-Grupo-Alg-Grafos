@@ -10,11 +10,13 @@ const NOMES = [
 ];
 
 /**
- * DFS para propagar fofoca a partir do fofoqueiro
+ * BFS para propagar fofoca a partir do fofoqueiro
+ * BFS garante que a fofoca se propague por níveis (distância do fofoqueiro)
  */
 function propagarFofoca(grafo, fofoqueiro, mentiroso) {
     const visitados = new Set();
     const propagacao = [];
+    const parentMap = new Map(); // Rastreia de quem cada nó recebeu a fofoca
     const adjList = new Map();
 
     // Construir lista de adjacência
@@ -24,34 +26,44 @@ function propagarFofoca(grafo, fofoqueiro, mentiroso) {
         adjList.get(edge.target).push(edge.source);
     });
 
-    function dfs(nodeId, nivel) {
-        if (visitados.has(nodeId)) return;
-        visitados.add(nodeId);
+    // Fila para BFS: cada elemento é { nodeId, nivel, parentId }
+    const fila = [{ nodeId: fofoqueiro, nivel: 0, parentId: null }];
+    visitados.add(fofoqueiro);
 
+    while (fila.length > 0) {
+        const { nodeId, nivel, parentId } = fila.shift();
+        
         const node = grafo.nodes.find(n => n.id === nodeId);
         const isMentiroso = nodeId === mentiroso;
+
+        // Registrar de quem este nó recebeu a fofoca
+        if (parentId !== null) {
+            parentMap.set(nodeId, parentId);
+        }
 
         propagacao.push({
             id: nodeId,
             nome: node.nome,
             nivel,
+            parentId,
             mentiroso: isMentiroso,
             popularidade: node.popularidade
         });
 
         // Se for mentiroso, não propaga (bloqueia a fofoca)
-        if (isMentiroso) return;
+        if (isMentiroso) continue;
 
+        // Adicionar vizinhos não visitados à fila
         const vizinhos = adjList.get(nodeId) || [];
         vizinhos.forEach(vizinho => {
             if (!visitados.has(vizinho)) {
-                dfs(vizinho, nivel + 1);
+                visitados.add(vizinho);
+                fila.push({ nodeId: vizinho, nivel: nivel + 1, parentId: nodeId });
             }
         });
     }
 
-    dfs(fofoqueiro, 0);
-    return propagacao;
+    return { propagacao, parentMap };
 }
 
 /**
@@ -80,11 +92,11 @@ exports.inicializarJogo = async (idPartida, idUsuario, numNodes = 6) => {
     } while (mentiroso === fofoqueiro);
 
     // Propagar fofoca usando DFS
-    const propagacao = propagarFofoca(grafo, fofoqueiro, mentiroso);
+    const { propagacao, parentMap } = propagarFofoca(grafo, fofoqueiro, mentiroso);
 
     // Gerar depoimentos: cada pessoa diz de quem recebeu a fofoca
     const depoimentos = [];
-    propagacao.forEach((node, index) => {
+    propagacao.forEach((node) => {
         if (node.nivel === 0) {
             // Fofoqueiro mente dizendo que recebeu de alguém aleatório
             const outrosNodes = grafo.nodes.filter(n => n.id !== node.id);
@@ -95,12 +107,13 @@ exports.inicializarJogo = async (idPartida, idUsuario, numNodes = 6) => {
                 ehMentira: true
             });
         } else {
-            // Encontrar quem passou a fofoca (nível anterior)
-            const origem = propagacao.find(p => p.nivel === node.nivel - 1 && p.id !== node.id);
-            if (origem) {
+            // Usar o parentMap para saber exatamente de quem este nó recebeu a fofoca
+            const parentId = parentMap.get(node.id);
+            if (parentId !== undefined) {
+                const parentNode = grafo.nodes.find(n => n.id === parentId);
                 depoimentos.push({
                     quemOuviu: node.nome,
-                    deQuem: origem.nome,
+                    deQuem: parentNode.nome,
                     ehMentira: false
                 });
             }
@@ -242,7 +255,7 @@ exports.verificarChute = async(req, res) => {
                     novoMentiroso = Math.floor(Math.random() * novoGrafo.nodes.length);
                 } while (novoMentiroso === novoFofoqueiro);
 
-                const novaPropagacao = propagarFofoca(novoGrafo, novoFofoqueiro, novoMentiroso);
+                const { propagacao: novaPropagacao, parentMap: novoParentMap } = propagarFofoca(novoGrafo, novoFofoqueiro, novoMentiroso);
 
                 // Gerar depoimentos
                 const novosDepoimentos = [];
@@ -252,8 +265,12 @@ exports.verificarChute = async(req, res) => {
                         const mentira = outrosNodes[Math.floor(Math.random() * outrosNodes.length)];
                         novosDepoimentos.push({ quemOuviu: node.nome, deQuem: mentira.nome, ehMentira: true });
                     } else {
-                        const origem = novaPropagacao.find(p => p.nivel === node.nivel - 1 && p.id !== node.id);
-                        if (origem) novosDepoimentos.push({ quemOuviu: node.nome, deQuem: origem.nome, ehMentira: false });
+                        // Usar o parentMap para saber exatamente de quem este nó recebeu a fofoca
+                        const parentId = novoParentMap.get(node.id);
+                        if (parentId !== undefined) {
+                            const parentNode = novoGrafo.nodes.find(n => n.id === parentId);
+                            novosDepoimentos.push({ quemOuviu: node.nome, deQuem: parentNode.nome, ehMentira: false });
+                        }
                     }
                 });
 
