@@ -31,7 +31,7 @@ CREATE TABLE Personagem (
     id_personagem INTEGER PRIMARY KEY,
     tipo_personagem VARCHAR(30),
     grauMentiroso_personagem FLOAT,
-    papel_personagem CHAR(30)
+    papel_personagem VARCHAR(30)
 );
 
 CREATE TABLE Amizade (
