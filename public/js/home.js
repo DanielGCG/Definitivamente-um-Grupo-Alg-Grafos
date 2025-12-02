@@ -207,7 +207,7 @@ async function searchUsers() {
 }
 
 /**
- * Adiciona um usuário como amigo
+ * Realizar o pedido de amizade
  * TODO: Integrar com API para adicionar amigo
  */
 async function addFriend(userId) {
@@ -221,7 +221,7 @@ async function addFriend(userId) {
 
         if (!res.ok) {
             const err = await res.json().catch(() => ({}));
-            showNotification(err.message || 'Erro ao adicionar amigo.', 'danger');
+            showNotification(err.message || 'Erro ao realizar o pedido de amizade.', 'danger');
             return;
         }
 
@@ -234,10 +234,10 @@ async function addFriend(userId) {
         const searchInput = document.getElementById('searchUser');
         if (searchInput && searchInput.value.trim().length >= 2) searchUsers();
 
-        showNotification(`${friend.nome_usuario} adicionado(a) aos seus amigos!`, 'success');
+        showNotification(`Um pedido de amizade foi enviado para ${friend.nome_usuario}!`, 'success');
     } catch (err) {
-        console.error('Erro ao adicionar amigo:', err);
-        showNotification('Erro de rede ao adicionar amigo.', 'danger');
+        console.error('Erro ao realizar o pedido de amizade:', err);
+        showNotification('Erro de rede ao realizar o pedido de amizade.', 'danger');
     }
 }
 
@@ -263,7 +263,7 @@ async function removeFriend(userId) {
         const searchInput = document.getElementById('searchUser');
         if (searchInput && searchInput.value.trim().length >= 2) searchUsers();
 
-        showNotification(`Usuário removido(a) dos seus amigos.`, 'success');
+        showNotification(`Usuário removido dos seus amigos.`, 'success');
     } catch (err) {
         console.error('Erro ao remover amigo:', err);
         showNotification('Erro de rede ao remover amigo.', 'danger');
