@@ -38,9 +38,13 @@ Por fim, em **“Jogar Agora”**, o jogador experimenta a possibilidade de esta
 
 ## ⚙️ Back-end
 
-Nosso back-end, com a finalidade de implementação da lógica em si do sistema, está baseado no **JavaScript** (com, também, a utilização do **Node.js**).
+Nosso back-end, responsável pela implementação da lógica do sistema, é desenvolvido em JavaScript, utilizando também o Node.js.
 
-Aliás, sobre os nossos algoritmos utilizados de maneira adequada para a resolução do problema proposto, usamos o de **busca em largura (BFS)** e de **busca em profundidade (DFS)**. (ALTERAR)
+A lógica do jogo baseia-se em dois algoritmos principais: um para a geração do grafo utilizado nas partidas e outro para a disseminação da fofoca.
+
+Para a geração do grafo, utilizamos o modelo de Barabási–Albert, que segue o princípio da conexão preferencial. Assim, quando um novo nó é inserido na rede, ele tende a se ligar principalmente aos nós que já possuem muitas conexões, resultando em uma estrutura típica de redes livres de escala.
+
+Já para a disseminação da fofoca, empregamos o algoritmo de busca em largura. A partir do nó inicial (o primeiro “fofoqueiro”) o algoritmo percorre os vizinhos em camadas, simulando a propagação da informação pela rede de forma gradual e ordenada, respeitando a sequência natural de alcance dos nós. Para dificultar o jogo, ainda temos os "mentirosos" que não informam a pessoa que informam que outra pessoa os contou a fofoca ao invés da verdadeira. (Em teoria dos grafos, é o mesmo que um vértice mentisse quem é seu pai).
 
 ---
 
