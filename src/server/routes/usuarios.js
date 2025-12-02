@@ -12,6 +12,7 @@ router.post('/logout', controller.logoutUsuario);
 router.get('/search', controller.listarUsuariosPorNome);
 
 // Rotas para gerenciamento de amigos
+router.get('/friend-requests', controller.listarPedidosAmizade);
 router.get('/friends', controller.listarAmigos);
 router.post('/friends', controller.adicionarAmigo);
 router.delete('/friends/:id', controller.removerAmigo);

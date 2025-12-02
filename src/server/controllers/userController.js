@@ -273,6 +273,45 @@ exports.logoutUsuario = async (req, res) => {
     }
 };
 
+// Lista pedidos de amizade pendentes (pessoas que adicionaram o usuário mas ele não adicionou de volta)
+exports.listarPedidosAmizade = async (req, res) => {
+    try {
+        const token_usuario = req.cookies?.token_usuario;
+        if (!token_usuario)
+            return res.status(401).json({ message: 'Não autenticado.' });
+
+        const [rowsUser] = await db.query(
+            'SELECT id_usuario FROM usuario WHERE token_usuario = ? LIMIT 1',
+            [token_usuario]
+        );
+
+        if (!rowsUser.length)
+            return res.status(404).json({ message: 'Usuário não encontrado.' });
+
+        const userId = rowsUser[0].id_usuario;
+
+        // Busca usuários que enviaram pedido mas o usuário atual não aceitou (não há amizade recíproca)
+        const [rows] = await db.query(
+            `SELECT u.id_usuario, u.nome_usuario, u.foto_usuario, u.score_usuario
+             FROM Amizade a
+             JOIN usuario u ON u.id_usuario = a.fk_Usuario_id_usuario
+             WHERE a.fk_Usuario_id_usuario_ = ?
+             AND NOT EXISTS (
+                 SELECT 1 FROM Amizade a2
+                 WHERE a2.fk_Usuario_id_usuario = ? 
+                 AND a2.fk_Usuario_id_usuario_ = a.fk_Usuario_id_usuario
+             )`,
+            [userId, userId]
+        );
+
+        return res.status(200).json(rows);
+
+    } catch (err) {
+        console.error('Erro ao listar pedidos de amizade:', err);
+        return res.status(500).json({ message: 'Erro interno.' });
+    }
+};
+
 // Lista amigos do usuário logado (bidirecional)
 exports.listarAmigos = async (req, res) => {
     try {

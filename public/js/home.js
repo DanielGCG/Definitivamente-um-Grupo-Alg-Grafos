@@ -85,6 +85,72 @@ function renderLeaderboard() {
 }
 
 /**
+ * Renderiza a lista de pedidos de amizade
+ */
+function renderFriendRequests(requests = []) {
+    const requestsListEl = document.getElementById('friendRequestsList');
+    const requestsCardEl = document.getElementById('friendRequestsCard');
+    const requestsCountEl = document.getElementById('friendRequestsCount');
+    
+    if (!requestsListEl || !requestsCardEl || !requestsCountEl) return;
+
+    // Mostrar/ocultar card baseado em se há pedidos
+    if (requests.length === 0) {
+        requestsCardEl.style.display = 'none';
+        return;
+    }
+
+    requestsCardEl.style.display = 'block';
+    requestsCountEl.textContent = requests.length;
+
+    requestsListEl.innerHTML = requests.map(request => {
+        const avatar = request.foto_usuario 
+            ? `<img src="${request.foto_usuario}" alt="" style="width:28px;height:28px;border-radius:50%;margin-right:8px;object-fit:cover;">`
+            : '👤';
+        return `
+            <div class="list-group-item friend-request-item d-flex justify-content-between align-items-center" data-user-id="${request.id_usuario}">
+                <div class="d-flex align-items-center flex-grow-1">
+                    <div class="flex-grow-1">
+                        <div class="fw-bold">${avatar} ${request.nome_usuario}</div>
+                        <small class="text-muted">
+                            <i class="bi bi-trophy"></i> ${request.score_usuario || 0} pts
+                        </small>
+                    </div>
+                </div>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-sm btn-success" onclick="acceptFriendRequest(${request.id_usuario})" title="Aceitar">
+                        <i class="bi bi-check-lg"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="rejectFriendRequest(${request.id_usuario})" title="Rejeitar">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+/**
+ * Busca os pedidos de amizade pela API e renderiza a lista
+ */
+async function fetchAndRenderFriendRequests() {
+    try {
+        const res = await fetch('/API/user/friend-requests', { credentials: 'same-origin' });
+        if (!res.ok) {
+            console.warn('Erro ao buscar pedidos de amizade:', res.status);
+            renderFriendRequests([]);
+            return;
+        }
+
+        const rows = await res.json();
+        renderFriendRequests(rows || []);
+    } catch (err) {
+        console.error('Erro de rede ao buscar pedidos de amizade:', err);
+        renderFriendRequests([]);
+    }
+}
+
+/**
  * Renderiza a lista de amigos
  */
 function renderFriendsList(friends = []) {
@@ -228,8 +294,9 @@ async function addFriend(userId) {
         const data = await res.json();
         const friend = data.friend;
 
-        // Recarrega a lista de amigos da API e atualiza a busca caso esteja aberta
+        // Recarrega a lista de amigos e pedidos da API e atualiza a busca caso esteja aberta
         await fetchAndRenderFriends();
+        await fetchAndRenderFriendRequests();
         // re-executar pesquisa para atualizar botões (se houver texto de busca)
         const searchInput = document.getElementById('searchUser');
         if (searchInput && searchInput.value.trim().length >= 2) searchUsers();
@@ -242,8 +309,65 @@ async function addFriend(userId) {
 }
 
 /**
+ * Aceita um pedido de amizade (adiciona o usuário de volta)
+ */
+async function acceptFriendRequest(userId) {
+    try {
+        const res = await fetch('/API/user/friends', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ friendId: userId })
+        });
+
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            showNotification(err.message || 'Erro ao aceitar pedido.', 'danger');
+            return;
+        }
+
+        const data = await res.json();
+        const friend = data.friend;
+
+        // Recarrega ambas as listas
+        await fetchAndRenderFriendRequests();
+        await fetchAndRenderFriends();
+        
+        showNotification(`Você e ${friend.nome_usuario} agora são amigos!`, 'success');
+    } catch (err) {
+        console.error('Erro ao aceitar pedido de amizade:', err);
+        showNotification('Erro de rede ao aceitar pedido.', 'danger');
+    }
+}
+
+/**
+ * Rejeita um pedido de amizade (remove a relação unidirecional)
+ */
+async function rejectFriendRequest(userId) {
+    try {
+        const res = await fetch(`/API/user/friends/${userId}`, {
+            method: 'DELETE',
+            credentials: 'same-origin'
+        });
+
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            showNotification(err.message || 'Erro ao rejeitar pedido.', 'danger');
+            return;
+        }
+
+        // Recarrega a lista de pedidos
+        await fetchAndRenderFriendRequests();
+        
+        showNotification('Pedido de amizade rejeitado.', 'info');
+    } catch (err) {
+        console.error('Erro ao rejeitar pedido de amizade:', err);
+        showNotification('Erro de rede ao rejeitar pedido.', 'danger');
+    }
+}
+
+/**
  * Remove um usuário dos amigos
- * TODO: Integrar com API para remover amigo
  */
 async function removeFriend(userId) {
     try {
@@ -258,8 +382,9 @@ async function removeFriend(userId) {
             return;
         }
 
-        // Recarrega a lista de amigos e atualiza busca
+        // Recarrega a lista de amigos, pedidos e atualiza busca
         await fetchAndRenderFriends();
+        await fetchAndRenderFriendRequests();
         const searchInput = document.getElementById('searchUser');
         if (searchInput && searchInput.value.trim().length >= 2) searchUsers();
 
@@ -391,6 +516,7 @@ function setupSearchDebounce() {
  */
 function initializePage() {
     fetchAndRenderLeaderboard();
+    fetchAndRenderFriendRequests();
     fetchAndRenderFriends();
     setupSearchDebounce();
     
