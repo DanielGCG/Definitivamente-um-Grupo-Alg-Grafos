@@ -8,7 +8,7 @@ Alunos:
 - Daniel Goulart Camacho - [@DanielGCG](https://github.com/DanielGCG)
 - Fellipe Tambasco Bezerra - [@fellipetb](https://github.com/fellipetb)
 - Maria Clara Sales - [@mariLuwai](https://github.com/mariLuwai)
-- Tales Calixto de Lima
+- Tales Calixto de Lima - [@tl1ma](https://github.com/tl1ma)
 
 # Definitivamente-um-Grupo-Alg-Grafos
 Projeto de Algoritmos e Grafos
