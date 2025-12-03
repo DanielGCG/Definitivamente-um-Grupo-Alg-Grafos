@@ -59,5 +59,6 @@ Nessa perspectiva, usamos as tabelas:
 - **Amizade**
 
 A tabela **Usuário** armazena as informações de cada jogador _(Nome, senha, token de autenticação, pontuação geral, foto e id)_, a tabela **Amizade** permite o armazenamento de dos pedidos  _(relação unidirecional entre usuários)_ e amizades _(relação bidirecional na tabela)_  e, por fim, a tabela **Partida**, que armazena colunas que são atualizadas em tempo real para permitir o funcionamento da lógica do jogo através dos controladores.
+
 ---
 
