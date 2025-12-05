@@ -16,7 +16,7 @@ Projeto de Algoritmos e Grafos
 
 # Jogo da Fofoca – Documentação do Projeto
 
-O nosso projeto consiste em um **“jogo da fofoca”** em que é escolhido um fofoqueiro e, com base nisso, traça-se o caminho da fofoca por um **grafo de amizades**, com a chance de mentirosos pelo caminho e, ao final, todos relatam ao player (isto é, ao jogador) o que ouviram. Ademais, usamos a **busca em largura (BFS)** e a **busca em profundidade (DFS)** para gerar o jogo e desejamos voltar para a origem. (ALTERAR)
+O nosso projeto consiste em um **“jogo da fofoca”** em que é escolhido um fofoqueiro e, com base nisso, traça-se o caminho da fofoca por um **grafo de amizades**, com a chance de mentirosos pelo caminho e, ao final, todos relatam ao player (isto é, ao jogador) o que ouviram por depoimentos. O objetivo do jogador é descobrir quem foi o fofoqueiro e, para isso, possui uma quantidade de vidas limitada e dicas para validar a veracidade dos depoimentos e identificar o grafo de espalhamento da fofoca, promovendo, assim, uma jogabilidade dinâmica. Ele busca aplicar conhecimentos obtidos e buscados externamente, por intermédio da disciplina de Algoritmos e Grafos, consolidando, assim, os conceitos aprendidos em sala de aula. 
 
 ---
 
